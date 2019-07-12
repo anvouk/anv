@@ -32,7 +32,7 @@
 
     #include <anv_bench.h>
     
-    ANV_NOINLINE_MSVC void test_func(int *a, int b, int c) ANV_NOINLINE_GCC
+    ANV_BENCH_NOINLINE void test_func(int *a, int b, int c)
     {
         *a += (b - c) * 2 + *a;
     }
@@ -49,12 +49,12 @@
 
     #include <anv_bench.h>
 
-    ANV_NOINLINE_MSVC void test_func_a(int *a, int b, int c) ANV_NOINLINE_GCC
+    ANV_BENCH_NOINLINE void test_func_a(int *a, int b, int c)
     {
         *a += (b - c) * 2 + *a;
     }
 
-    ANV_NOINLINE_MSVC int test_func_b(int b, int c) ANV_NOINLINE_GCC
+    ANV_BENCH_NOINLINE int test_func_b(int b, int c)
     {
         return (b + c) / 2;
     }
@@ -86,11 +86,9 @@
 #define ANVSTR_VA _ANVSTR_VA
 
 #ifdef _MSC_VER
-#  define ANV_NOINLINE_MSVC __declspec(noinline)
-#  define ANV_NOINLINE_GCC
+#  define ANV_BENCH_NOINLINE __declspec(noinline)
 #else
-#  define ANV_NOINLINE_MSVC
-#  define ANV_NOINLINE_GCC __attribute__((noinline))
+#  define ANV_BENCH_NOINLINE __attribute__((noinline))
 #endif /* _MSC_VER */
 
 #ifndef ANV_BENCH_FUNC
@@ -140,7 +138,7 @@
 #define ANV_BENCH_ADD(func, ...) \
     ANV_BENCH(_outfile, _single_runs, func, __VA_ARGS__)
 
-#define ANV_BENCH_ADD_WITH_NAME(func, name, ...) \
+#define ANV_BENCH_ADD_WITH_NAME(name, func, ...) \
     ANV_BENCH_WITH_NAME(_outfile, _single_runs, name, func, __VA_ARGS__)
 
 #define ANV_BENCH_END() \
