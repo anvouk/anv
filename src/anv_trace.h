@@ -59,6 +59,10 @@
 #  define ANV_TRACE_EXP extern 
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define ANV_TRACE_DEBUG	    0	/**< verbose. */
 #define ANV_TRACE_INFO	    1	/**< common log message. */
 #define ANV_TRACE_WARNING	2	/**< warning log message. */
@@ -97,6 +101,10 @@ ANV_TRACE_EXP void anv_trace_(
 
 #define anv_trace_enter() anv_traced("<< entering \"%s\"", __FUNCTION__)
 #define anv_trace_leave() anv_traced(">> leaving  \"%s\"", __FUNCTION__)
+
+#ifdef __cplusplus
+}
+#endif
 
 #ifdef ANV_TRACE_IMPLEMENTATION
 

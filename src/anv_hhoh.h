@@ -33,7 +33,7 @@
     1. hide boilerplate code
     2. create a unifyed and cleaner interface
 
-  Minimalist example:
+  simple example:
 
     #define ANV_HHOH_IMPLEMENTATION
     #include <anv_hhoh.h>
@@ -44,7 +44,7 @@
 
     int main(void)
     {
-        ANVHHOHAPI file_handle;
+        ANV_HHOH_EXP file_handle;
 
         if (!anv_hhoh_open_file(&file_handle, TEXT("my_file.txt"), TEXT("r"))) {
             // could not open the file
@@ -82,12 +82,16 @@
 
 #pragma once
 
-#ifndef ANVHHOHAPI
-#  define ANVHHOHAPI extern
-#endif
-
 #include <windows.h>
 #include <stdio.h>
+
+#ifndef ANV_HHOH_EXP
+#  define ANV_HHOH_EXP extern
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define ANV_HHOH_HANDLE_INVALID	0
 #define ANV_HHOH_HANDLE_C_FD	1
@@ -107,25 +111,29 @@ typedef struct ANV_HANDLE {
 	open - close
 ------------------------------------------------------------------------------*/
 
-ANVHHOHAPI BOOL anv_hhoh_open_cfd(ANV_HANDLE *hd, const TCHAR *filename, int mode);
-ANVHHOHAPI BOOL anv_hhoh_open_win32(ANV_HANDLE *hd, const TCHAR *filename, DWORD mode, BOOL shared);
-ANVHHOHAPI BOOL anv_hhoh_open_file(ANV_HANDLE *hd, const TCHAR *filename, const TCHAR *mode);
+ANV_HHOH_EXP BOOL anv_hhoh_open_cfd(ANV_HANDLE *hd, const TCHAR *filename, int mode);
+ANV_HHOH_EXP BOOL anv_hhoh_open_win32(ANV_HANDLE *hd, const TCHAR *filename, DWORD mode, BOOL shared);
+ANV_HHOH_EXP BOOL anv_hhoh_open_file(ANV_HANDLE *hd, const TCHAR *filename, const TCHAR *mode);
 
-ANVHHOHAPI BOOL anv_hhoh_close_cfd(ANV_HANDLE *hd);
-ANVHHOHAPI BOOL anv_hhoh_close_win32(ANV_HANDLE *hd);
-ANVHHOHAPI BOOL anv_hhoh_close_file(ANV_HANDLE *hd);
+ANV_HHOH_EXP BOOL anv_hhoh_close_cfd(ANV_HANDLE *hd);
+ANV_HHOH_EXP BOOL anv_hhoh_close_win32(ANV_HANDLE *hd);
+ANV_HHOH_EXP BOOL anv_hhoh_close_file(ANV_HANDLE *hd);
 
-ANVHHOHAPI BOOL anv_hhoh_close_auto(ANV_HANDLE *hd);
+ANV_HHOH_EXP BOOL anv_hhoh_close_auto(ANV_HANDLE *hd);
 
 /*------------------------------------------------------------------------------
 	conversions
 ------------------------------------------------------------------------------*/
 
-ANVHHOHAPI BOOL anv_hhoh_file_to_cfd(ANV_HANDLE *hd);
-ANVHHOHAPI BOOL anv_hhoh_cfd_to_file(ANV_HANDLE *hd, const TCHAR *mode);
+ANV_HHOH_EXP BOOL anv_hhoh_file_to_cfd(ANV_HANDLE *hd);
+ANV_HHOH_EXP BOOL anv_hhoh_cfd_to_file(ANV_HANDLE *hd, const TCHAR *mode);
 
-ANVHHOHAPI BOOL anv_hhoh_win32_to_cfd(ANV_HANDLE *hd, int flags);
-ANVHHOHAPI BOOL anv_hhoh_cfd_to_win32(ANV_HANDLE *hd);
+ANV_HHOH_EXP BOOL anv_hhoh_win32_to_cfd(ANV_HANDLE *hd, int flags);
+ANV_HHOH_EXP BOOL anv_hhoh_cfd_to_win32(ANV_HANDLE *hd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #ifdef ANV_HHOH_IMPLEMENTATION
 

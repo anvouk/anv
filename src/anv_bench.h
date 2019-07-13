@@ -28,7 +28,7 @@
 
   quick-and-dirty benchmarking system for quick prototyping.
 
-  minimalist example:
+  simple example:
 
     #include <anv_bench.h>
     
