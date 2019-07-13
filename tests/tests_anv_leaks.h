@@ -182,7 +182,7 @@ ANV_TESTSUITE_FIXTURE(anv_leaks_test_multi_leaks)
     fprintf(anv_leaks_out, "=== end anv_leaks_test_multi_leaks ===\n");
 }
 
-ANV_TESTSUITE_FIXTURE(anv_leaks_test_confirm_no_leaks)
+ANV_TESTSUITE_FIXTURE(anv_leaks_test_check_no_leaks)
 {
     anv_leaks_stats stats;
     anv_leaks_get_stats(&stats);
@@ -218,6 +218,6 @@ ANV_TESTSUITE(tests_anv_leaks,
     ANV_TESTSUITE_ADD(anv_leaks_test_get_leaks),
     ANV_TESTSUITE_ADD(anv_leaks_test_multi_leaks),
     /* shutdown checks */
-    ANV_TESTSUITE_ADD(anv_leaks_test_confirm_no_leaks),
+    ANV_TESTSUITE_ADD(anv_leaks_test_check_no_leaks),
     ANV_TESTSUITE_ADD(anv_leaks_test_shutdown),
     );
