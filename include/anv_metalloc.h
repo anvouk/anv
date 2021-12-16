@@ -92,7 +92,7 @@
 #include <stddef.h> /* for size_t */
 
 #ifndef ANV_METALLOC_EXP
-#  define ANV_METALLOC_EXP extern 
+#  define ANV_METALLOC_EXP extern
 #endif
 
 #ifndef ANV_METALLOC_METASIZE
@@ -136,7 +136,7 @@ typedef CHKB_T     chkb_t;
 int
 anv_meta_isvalid(void *mem)
 {
-    return *(chkb_t *)(mem - CHKB_SZ) == (chkb_t)CHKB ? 1 : 0;
+    return *(chkb_t *)((size_t)mem - CHKB_SZ) == (chkb_t)CHKB ? 1 : 0;
 }
 
 anv_meta_size_t
@@ -148,7 +148,7 @@ anv_meta_getsz(void *mem)
     if (!anv_meta_isvalid(mem))
         return 0;
 #endif
-    return *(anv_meta_size_t *)(mem - (METASZ_SZ + CHKB_SZ));
+    return *(anv_meta_size_t *)((size_t)mem - (METASZ_SZ + CHKB_SZ));
 }
 
 void *
@@ -159,7 +159,7 @@ anv_meta_get(void *mem)
     if (!anv_meta_isvalid(mem))
         return NULL;
 #endif
-    return (mem - (anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ));
+    return (void *)((size_t)mem - (anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ));
 }
 
 void
@@ -171,7 +171,7 @@ anv_meta_set(void *mem, void *metadata)
         return;
 #endif
     anv_meta_size_t data_sz = anv_meta_getsz(mem);
-    memcpy((mem - (data_sz + METASZ_SZ + CHKB_SZ)), metadata, data_sz);
+    memcpy((void *)((size_t)mem - (data_sz + METASZ_SZ + CHKB_SZ)), metadata, data_sz);
 }
 
 size_t
@@ -195,9 +195,9 @@ anv_meta_malloc(void *metadata, anv_meta_size_t data_sz, size_t mem_sz)
         memcpy(mem, metadata, data_sz);
     else
         memset(mem, 0, data_sz);
-    *(anv_meta_size_t *)(mem + data_sz   ) = data_sz;
-    *(chkb_t *)(mem + data_sz + METASZ_SZ) = CHKB;
-    return (mem + data_sz + METASZ_SZ + CHKB_SZ);
+    *(anv_meta_size_t *)((size_t)mem + data_sz            ) = data_sz;
+    *(chkb_t *)         ((size_t)mem + data_sz + METASZ_SZ) = CHKB;
+    return (void *)((size_t)mem + data_sz + METASZ_SZ + CHKB_SZ);
 }
 
 void *
@@ -210,11 +210,13 @@ anv_meta_realloc(void *mem, size_t new_sz)
         return NULL;
 #endif
     size_t padd = anv_meta_getpadding(mem);
-    void *actual_mem = (mem - padd);
-    actual_mem = realloc(actual_mem, new_sz);
-    if (!actual_mem)
-        return NULL;
-    return (actual_mem + padd);
+    void *actual_mem = (void *)((size_t)mem - padd);
+    void *reallocated_mem = realloc(actual_mem, new_sz);
+    if (!reallocated_mem) {
+      free(actual_mem);
+      return NULL;
+    }
+    return (void *)((size_t)reallocated_mem + padd);
 }
 
 void *
@@ -226,18 +228,20 @@ anv_meta_calloc(void *metadata, anv_meta_size_t data_sz, size_t nitems, size_t s
     if (!mem)
         return NULL;
     size_t padd = anv_meta_getpadding(mem);
-    memset(mem - padd, mem_sz + padd, 0);
+    memset((void *)((size_t)mem - padd), 0, padd);
     return mem;
 }
 
 void
 anv_meta_free(void *mem)
 {
-    if (!anv_meta_isvalid(mem))
-        return free(mem);
-    free(mem - (anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ));
+    if (!anv_meta_isvalid(mem)) {
+      free(mem);
+      return;
+    }
+    free((void *)((size_t)mem - (anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ)));
 }
 
-#endif
+#endif /* ANV_METALLOC_IMPLEMENTATION */
 
 #endif /* ANV_METALLOC_H */

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #define ANV_METALLOC_IMPLEMENTATION
+#define ANV_METALLOC_ENABLE_EXTRA_CHECKS
 #include "../include/anv_metalloc.h"
 
 typedef struct metadata_t {
@@ -110,6 +111,8 @@ ANV_TESTSUITE_FIXTURE(anv_metalloc_test_meta_free)
 
     /* should behave as a normal free */
     anv_meta_free(mem);
+
+    expect(1);
 }
 
 ANV_TESTSUITE_FIXTURE(anv_metalloc_test_meta_malloc_no_meta)
