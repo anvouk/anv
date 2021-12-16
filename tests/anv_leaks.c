@@ -107,7 +107,7 @@ anv_leaks_test__print_leaks(anv_leak_info **leaks, size_t leaks_count)
     for (size_t i = 0; i < leaks_count; ++i) {
         anv_leak_info *l = leaks[i];
         fprintf(anv_leaks_out, "[%s:%d] [%p] = %d\n",
-            l->filename, l->line, l->address, (int)l->bytes);
+                l->filename, l->line, l->address, (int) l->bytes);
     }
 }
 
@@ -210,21 +210,19 @@ ANV_TESTSUITE_FIXTURE(anv_leaks_test_check_no_leaks)
 
 /* don't change invocation order carelessly! */
 ANV_TESTSUITE(tests_anv_leaks,
-    ANV_TESTSUITE_ADD(anv_leaks_test_init),
-    /* allocation/free */
-    ANV_TESTSUITE_ADD(anv_leaks_test_malloc),
-    ANV_TESTSUITE_ADD(anv_leaks_test_realloc),
-    ANV_TESTSUITE_ADD(anv_leaks_test_calloc),
-    /* other */
-    ANV_TESTSUITE_ADD(anv_leaks_test_get_leaks),
-    ANV_TESTSUITE_ADD(anv_leaks_test_multi_leaks),
-    /* shutdown checks */
-    ANV_TESTSUITE_ADD(anv_leaks_test_check_no_leaks),
-    ANV_TESTSUITE_ADD(anv_leaks_test_shutdown),
-    );
+              ANV_TESTSUITE_ADD(anv_leaks_test_init),
+              /* allocation/free */
+              ANV_TESTSUITE_ADD(anv_leaks_test_malloc),
+              ANV_TESTSUITE_ADD(anv_leaks_test_realloc),
+              ANV_TESTSUITE_ADD(anv_leaks_test_calloc),
+              /* other */
+              ANV_TESTSUITE_ADD(anv_leaks_test_get_leaks),
+              ANV_TESTSUITE_ADD(anv_leaks_test_multi_leaks),
+              /* shutdown checks */
+              ANV_TESTSUITE_ADD(anv_leaks_test_check_no_leaks),
+              ANV_TESTSUITE_ADD(anv_leaks_test_shutdown), );
 
-int
-main(void)
+int main(void)
 {
     ANV_TESTSUITE_BEGIN(stdout);
     ANV_TESTSUITE_RUN(tests_anv_leaks, stdout);

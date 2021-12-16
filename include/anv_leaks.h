@@ -56,7 +56,7 @@
 #include <stdio.h>
 
 #ifndef ANV_LEAKS_EXP
-#  define ANV_LEAKS_EXP extern
+    #define ANV_LEAKS_EXP extern
 #endif
 
 #ifdef __cplusplus
@@ -83,17 +83,17 @@ ANV_LEAKS_EXP void anv_leaks_init(FILE *output);
 ANV_LEAKS_EXP void anv_leaks_quickpeek(void);
 
 ANV_LEAKS_EXP void anv_leaks_get_stats(anv_leaks_stats *out);
-ANV_LEAKS_EXP void anv_leaks_get_leaks(anv_leak_info  ***out_arr, size_t *out_sz);
+ANV_LEAKS_EXP void anv_leaks_get_leaks(anv_leak_info ***out_arr, size_t *out_sz);
 ANV_LEAKS_EXP void anv_leaks_free_info(anv_leak_info **leak_arr, size_t sz);
 
 ANV_LEAKS_EXP void *anv_leaks_malloc_(size_t size, const char *filename, int line, int is_realloc);
-ANV_LEAKS_EXP void  anv_leaks_free_(void *mem, const char *filename, int line);
+ANV_LEAKS_EXP void anv_leaks_free_(void *mem, const char *filename, int line);
 ANV_LEAKS_EXP void *anv_leaks_calloc_(size_t num, size_t size, const char *filename, int line);
 ANV_LEAKS_EXP void *anv_leaks_realloc_(void *mem, size_t size, const char *filename, int line);
 
-#define anv_leaks_malloc(size)       anv_leaks_malloc_ (size, __FILE__, __LINE__, 0)
-#define anv_leaks_free(mem)          anv_leaks_free_   (mem, __FILE__, __LINE__)
-#define anv_leaks_calloc(num, size)  anv_leaks_calloc_ (num, size, __FILE__, __LINE__)
+#define anv_leaks_malloc(size) anv_leaks_malloc_(size, __FILE__, __LINE__, 0)
+#define anv_leaks_free(mem) anv_leaks_free_(mem, __FILE__, __LINE__)
+#define anv_leaks_calloc(num, size) anv_leaks_calloc_(num, size, __FILE__, __LINE__)
 #define anv_leaks_realloc(mem, size) anv_leaks_realloc_(mem, size, __FILE__, __LINE__)
 
 #ifdef __cplusplus
@@ -102,13 +102,13 @@ ANV_LEAKS_EXP void *anv_leaks_realloc_(void *mem, size_t size, const char *filen
 
 #ifdef ANV_LEAKS_IMPLEMENTATION
 
-#ifndef anv_leaks__assert
-#  include <assert.h>
-#  define anv_leaks__assert(x) assert(x)
-#endif
+    #ifndef anv_leaks__assert
+        #include <assert.h>
+        #define anv_leaks__assert(x) assert(x)
+    #endif
 
-#include <stdlib.h>
-#include <string.h>
+    #include <stdlib.h>
+    #include <string.h>
 
 typedef struct anv_leaks__alloc_map {
     void *block;
@@ -125,8 +125,7 @@ static struct {
     anv_leaks__alloc_map map;
 } anv_leaks__settings;
 
-void
-anv_leaks_init(FILE *output)
+void anv_leaks_init(FILE *output)
 {
     anv_leaks__assert(output);
     anv_leaks__settings.output = output;
@@ -137,43 +136,40 @@ anv_leaks_init(FILE *output)
     memset(&anv_leaks__settings.info, 0, sizeof(anv_leaks_stats));
 }
 
-void
-anv_leaks_quickpeek(void)
+void anv_leaks_quickpeek(void)
 {
     const char *msg =
-        "\n /=========================\\\n"
-        " |===    Quick Stats    ===|\n"
-        " |=========================|\n"
-        " |total alloc:      %.7u|\n"
-        " |total free:       %.7u|\n"
-        " |-------------------------|\n"
-        " |total leaks:      %.7u|\n"
-        " |                         |\n"
-        " |total malloc():   %.7u|\n"
-        " |total calloc():   %.7u|\n"
-        " |-------------------------|\n"
-        " |total free():     %.7u|\n"
-        " |                         |\n"
-        " |total realloc():  %.7u|\n"
-        " \\=========================/\n\n";
+            "\n /=========================\\\n"
+            " |===    Quick Stats    ===|\n"
+            " |=========================|\n"
+            " |total alloc:      %.7u|\n"
+            " |total free:       %.7u|\n"
+            " |-------------------------|\n"
+            " |total leaks:      %.7u|\n"
+            " |                         |\n"
+            " |total malloc():   %.7u|\n"
+            " |total calloc():   %.7u|\n"
+            " |-------------------------|\n"
+            " |total free():     %.7u|\n"
+            " |                         |\n"
+            " |total realloc():  %.7u|\n"
+            " \\=========================/\n\n";
 
     fprintf(anv_leaks__settings.output, msg,
-        anv_leaks__settings.info.total_allocated,
-        anv_leaks__settings.info.total_freed,
-        /*-------------------------*/
-        anv_leaks__settings.info.total_allocated - anv_leaks__settings.info.total_freed,
-        /*                         */
-        anv_leaks__settings.info.malloc_count,
-        anv_leaks__settings.info.calloc_count,
-        /*-------------------------*/
-        anv_leaks__settings.info.free_count,
-        /*                         */
-        anv_leaks__settings.info.realloc_count
-    );
+            anv_leaks__settings.info.total_allocated,
+            anv_leaks__settings.info.total_freed,
+            /*-------------------------*/
+            anv_leaks__settings.info.total_allocated - anv_leaks__settings.info.total_freed,
+            /*                         */
+            anv_leaks__settings.info.malloc_count,
+            anv_leaks__settings.info.calloc_count,
+            /*-------------------------*/
+            anv_leaks__settings.info.free_count,
+            /*                         */
+            anv_leaks__settings.info.realloc_count);
 }
 
-void
-anv_leaks_get_stats(anv_leaks_stats *out)
+void anv_leaks_get_stats(anv_leaks_stats *out)
 {
     anv_leaks__assert(out);
     out->total_allocated = anv_leaks__settings.info.total_allocated;
@@ -184,8 +180,7 @@ anv_leaks_get_stats(anv_leaks_stats *out)
     out->realloc_count = anv_leaks__settings.info.realloc_count;
 }
 
-void
-anv_leaks_get_leaks(anv_leak_info ***out_arr, size_t *out_sz)
+void anv_leaks_get_leaks(anv_leak_info ***out_arr, size_t *out_sz)
 {
     size_t delta, i;
     anv_leaks__alloc_map *il;
@@ -194,15 +189,13 @@ anv_leaks_get_leaks(anv_leak_info ***out_arr, size_t *out_sz)
     anv_leaks__assert(out_arr);
     anv_leaks__assert(out_sz);
 
-    delta = anv_leaks__settings.info.malloc_count + anv_leaks__settings.info.calloc_count
-        - anv_leaks__settings.info.free_count;
+    delta = anv_leaks__settings.info.malloc_count + anv_leaks__settings.info.calloc_count - anv_leaks__settings.info.free_count;
     if (delta == 0)
         goto anv__zero_all;
-    *out_arr = malloc(sizeof(anv_leak_info*) * delta);
+    *out_arr = malloc(sizeof(anv_leak_info *) * delta);
     anv_leaks__assert(*out_arr);
     i = 0;
-    for (il = anv_leaks__settings.map.next;
-        il != &anv_leaks__settings.map; il = il->next) {
+    for (il = anv_leaks__settings.map.next; il != &anv_leaks__settings.map; il = il->next) {
         leak = malloc(sizeof(anv_leak_info));
         anv_leaks__assert(leak);
         leak->filename = il->filename;
@@ -220,8 +213,7 @@ anv__zero_all:
     *out_sz = 0;
 }
 
-void
-anv_leaks_free_info(anv_leak_info **leak_arr, size_t sz)
+void anv_leaks_free_info(anv_leak_info **leak_arr, size_t sz)
 {
     size_t i;
 
@@ -236,15 +228,15 @@ anv_leaks_free_info(anv_leak_info **leak_arr, size_t sz)
 void *
 anv_leaks_malloc_(size_t size, const char *filename, int line, int is_realloc)
 {
-    void* mem;
-    anv_leaks__alloc_map* node;
+    void *mem;
+    anv_leaks__alloc_map *node;
 
     anv_leaks__assert(size != 0 && "invalid size");
 
     /* alloc new node */
     node = malloc(sizeof(anv_leaks__alloc_map));
     if (!node) {
-      return NULL;
+        return NULL;
     }
 
     mem = malloc(size);
@@ -266,17 +258,16 @@ anv_leaks_malloc_(size_t size, const char *filename, int line, int is_realloc)
     anv_leaks__settings.map.next = node;
     /* report allocation to output */
     if (is_realloc) {
-      fprintf(anv_leaks__settings.output, "[%s:%d] <%p> <realloc> malloc(%zu)\n",
-              filename, line, mem, size);
+        fprintf(anv_leaks__settings.output, "[%s:%d] <%p> <realloc> malloc(%zu)\n",
+                filename, line, mem, size);
     } else {
         fprintf(anv_leaks__settings.output, "[%s:%d] <%p> malloc(%zu)\n",
-            filename, line, mem, size);
+                filename, line, mem, size);
     }
     return mem;
 }
 
-void
-anv_leaks_free_(void *mem, const char *filename, int line)
+void anv_leaks_free_(void *mem, const char *filename, int line)
 {
     anv_leaks__assert(mem && "attempt to free a NULL pointer.");
 
@@ -286,7 +277,7 @@ anv_leaks_free_(void *mem, const char *filename, int line)
             ++anv_leaks__settings.info.free_count;
             anv_leaks__settings.info.total_freed += i->next->size;
             fprintf(anv_leaks__settings.output, "[%s:%d] <%p> free(%zu)\n",
-                filename, line, i->next->block, i->next->size);
+                    filename, line, i->next->block, i->next->size);
             /* remove and free mem */
             anv_leaks__alloc_map *to_delete = i->next;
             i->next = i->next->next;
@@ -330,7 +321,7 @@ anv_leaks_calloc_(size_t num, size_t size, const char *filename, int line)
     anv_leaks__settings.map.next = node;
     /* report allocation to output */
     fprintf(anv_leaks__settings.output, "[%s:%d] <%p> calloc(%zu, %zu) | total: %zu\n",
-        filename, line, mem, num, size, num * size);
+            filename, line, mem, num, size, num * size);
     return mem;
 }
 
@@ -350,7 +341,7 @@ anv_leaks_realloc_(void *mem, size_t size, const char *filename, int line)
     anv_leaks__assert(new_mem);
     /* update memory */
     for (node = anv_leaks__settings.map.next;
-        node != &anv_leaks__settings.map; node = node->next) {
+         node != &anv_leaks__settings.map; node = node->next) {
         if (node->block == mem) {
             node->block = new_mem;
             old_size = node->size;
@@ -365,17 +356,17 @@ anv_leaks_realloc_(void *mem, size_t size, const char *filename, int line)
     ++anv_leaks__settings.info.realloc_count;
     /* report reallocation to output */
     fprintf(anv_leaks__settings.output, "[%s:%d] <%p> realloc(from: %zu, to: %zu) | diff: %zu\n",
-        filename, line, new_mem, old_size, size, size - old_size);
+            filename, line, new_mem, old_size, size, size - old_size);
     return new_mem;
 }
 
 #endif
 
 #ifndef ANV_LEAKS_DISABLE
-#  define malloc      anv_leaks_malloc
-#  define free        anv_leaks_free
-#  define calloc      anv_leaks_calloc
-#  define realloc     anv_leaks_realloc
+    #define malloc anv_leaks_malloc
+    #define free anv_leaks_free
+    #define calloc anv_leaks_calloc
+    #define realloc anv_leaks_realloc
 #endif
 
 #endif /* ANV_LEAKS_H */
