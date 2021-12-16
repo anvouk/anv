@@ -26,7 +26,7 @@
     anv_trace
 --------------------------------------------------------------------------------
 
-  simple application tracing.
+  very simple and not thread-safe logging lib.
 
   simple example:
 

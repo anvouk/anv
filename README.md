@@ -1,6 +1,6 @@
 # anv
 
-anv is a collection of one-header-only C libraries made by me.
+anv is a collection of one-header-only C99 libraries made by me.
 
 Needless to say, this collection has been heavily inspired by [stb](https://github.com/nothings/stb).
 Hope this small collection may be of help.
@@ -14,12 +14,14 @@ Once this is done, simply include the header like any other wherever is needed.
 
 ## Libs list
 
-|   Headers   |  OS   | Description                                                   |
-|:-----------:|:-----:|---------------------------------------------------------------|
-| anv_bench.h | Cross | Quick and dirty benchmarking                                  |
-| anv_hhoh.h  | Win   | File handles handler (thxs to windows...)                     |
-| anv_leaks.h | Cross | Yet another memory leaks detector (Checks for bad usages too) |
-| anv_trace.h | Cross | Yet another tracing library                                   |
+|     Headers     |  OS   | Description                                                   |
+|:---------------:|:-----:|---------------------------------------------------------------|
+|   anv_bench.h   | Cross | Quick and dirty benchmarking                                  |
+|   anv_hhoh.h    |  Win  | File handles handler (thxs to windows...)                     |
+|   anv_leaks.h   | Cross | Yet another memory leaks detector (Checks for bad usages too) |
+|   anv_trace.h   | Cross | Yet another tracing library                                   |
+| anv_testsuite.h | Cross | Simple, self-contained and macro-heavy unit test library      |
+| anv_metalloc.h  | Cross | Store metadata for allocated memory blocks                    |
 
 ## Run tests
 
