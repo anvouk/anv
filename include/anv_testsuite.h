@@ -42,7 +42,7 @@
     {
         int a = 10;
         expect(a == 10);
-        
+
         int b = 13;
         expect(a == b);
     }
@@ -97,7 +97,7 @@ typedef struct anv_testsuite_fixture {
     void fixture(int *out_res, FILE *out_file)
 
 #define ANV_TESTSUITE_ADD(fixture) \
-    (anv_testsuite_fixture) { #fixture, fixture }
+    { #fixture, fixture }
 
 #define ANV_TESTSUITE(suitename, ...) \
     const anv_testsuite_fixture suitename[] = { \
@@ -114,8 +114,8 @@ typedef struct anv_testsuite_fixture {
     do { \
         int total_fails = 0; \
         fprintf(out_file, "---- BEGIN TEST SUITE: %s ----\n\n", #suitename); \
-        for (int i = 0; i < ANV_TESTSUITE__LEN(suitename); ++i) { \
-            fprintf(out_file, "[%d] %-30s => ", i, ((suitename)[i]).fixture_name); \
+        for (size_t i = 0; i < ANV_TESTSUITE__LEN(suitename); ++i) { \
+            fprintf(out_file, "[%zu] %-30s => ", i, ((suitename)[i]).fixture_name); \
             int result = 1; \
             ((suitename)[i]).fixture(&result, out_file); \
             if (result) { \

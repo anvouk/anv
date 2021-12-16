@@ -144,17 +144,17 @@ anv_leaks_quickpeek(void)
         "\n /=========================\\\n"
         " |===    Quick Stats    ===|\n"
         " |=========================|\n"
-        " |total alloc:      %.7d|\n"
-        " |total free:       %.7d|\n"
+        " |total alloc:      %.7u|\n"
+        " |total free:       %.7u|\n"
         " |-------------------------|\n"
-        " |total leaks:      %.7d|\n"
+        " |total leaks:      %.7u|\n"
         " |                         |\n"
-        " |total malloc():   %.7d|\n"
-        " |total calloc():   %.7d|\n"
+        " |total malloc():   %.7u|\n"
+        " |total calloc():   %.7u|\n"
         " |-------------------------|\n"
-        " |total free():     %.7d|\n"
+        " |total free():     %.7u|\n"
         " |                         |\n"
-        " |total realloc():  %.7d|\n"
+        " |total realloc():  %.7u|\n"
         " \\=========================/\n\n";
 
     fprintf(anv_leaks__settings.output, msg,
@@ -239,20 +239,20 @@ anv_leaks_malloc_(size_t size, const char *filename, int line, int is_realloc)
     void* mem;
     anv_leaks__alloc_map* node;
 
-    anv_leaks__assert(size != 0);
+    anv_leaks__assert(size != 0 && "invalid size");
 
     /* alloc new node */
     node = malloc(sizeof(anv_leaks__alloc_map));
-    anv_leaks__assert(node);
+    if (!node) {
+      return NULL;
+    }
+
     mem = malloc(size);
     if (!mem) {
-        /* check if realloc is calling malloc */
-        if (is_realloc)
-            anv_leaks__assert(0 && "(realloc) malloc failed.");
-        else
-            anv_leaks__assert(0 && "malloc failed.");
+        free(node);
         return NULL;
     }
+
     /* intialize new node */
     node->block = mem;
     node->size = size;
@@ -265,12 +265,13 @@ anv_leaks_malloc_(size_t size, const char *filename, int line, int is_realloc)
     node->next = anv_leaks__settings.map.next;
     anv_leaks__settings.map.next = node;
     /* report allocation to output */
-    if (is_realloc)
-        fprintf(anv_leaks__settings.output, "[%s:%d] <%p> <realloc> malloc(%d)\n",
+    if (is_realloc) {
+      fprintf(anv_leaks__settings.output, "[%s:%d] <%p> <realloc> malloc(%zu)\n",
+              filename, line, mem, size);
+    } else {
+        fprintf(anv_leaks__settings.output, "[%s:%d] <%p> malloc(%zu)\n",
             filename, line, mem, size);
-    else
-        fprintf(anv_leaks__settings.output, "[%s:%d] <%p> malloc(%d)\n",
-            filename, line, mem, size);
+    }
     return mem;
 }
 
@@ -284,7 +285,7 @@ anv_leaks_free_(void *mem, const char *filename, int line)
         if (i->next->block == mem) {
             ++anv_leaks__settings.info.free_count;
             anv_leaks__settings.info.total_freed += i->next->size;
-            fprintf(anv_leaks__settings.output, "[%s:%d] <%p> free(%d)\n",
+            fprintf(anv_leaks__settings.output, "[%s:%d] <%p> free(%zu)\n",
                 filename, line, i->next->block, i->next->size);
             /* remove and free mem */
             anv_leaks__alloc_map *to_delete = i->next;
@@ -328,7 +329,7 @@ anv_leaks_calloc_(size_t num, size_t size, const char *filename, int line)
     node->next = anv_leaks__settings.map.next;
     anv_leaks__settings.map.next = node;
     /* report allocation to output */
-    fprintf(anv_leaks__settings.output, "[%s:%d] <%p> calloc(%d, %d) | total: %d\n",
+    fprintf(anv_leaks__settings.output, "[%s:%d] <%p> calloc(%zu, %zu) | total: %zu\n",
         filename, line, mem, num, size, num * size);
     return mem;
 }
@@ -348,7 +349,6 @@ anv_leaks_realloc_(void *mem, size_t size, const char *filename, int line)
     new_mem = realloc(mem, size);
     anv_leaks__assert(new_mem);
     /* update memory */
-    anv_leaks__alloc_map *i = &anv_leaks__settings.map;
     for (node = anv_leaks__settings.map.next;
         node != &anv_leaks__settings.map; node = node->next) {
         if (node->block == mem) {
@@ -364,7 +364,7 @@ anv_leaks_realloc_(void *mem, size_t size, const char *filename, int line)
     anv_leaks__settings.info.total_allocated += (size - old_size);
     ++anv_leaks__settings.info.realloc_count;
     /* report reallocation to output */
-    fprintf(anv_leaks__settings.output, "[%s:%d] <%p> realloc(from: %d, to: %d) | diff: %d\n",
+    fprintf(anv_leaks__settings.output, "[%s:%d] <%p> realloc(from: %zu, to: %zu) | diff: %zu\n",
         filename, line, new_mem, old_size, size, size - old_size);
     return new_mem;
 }

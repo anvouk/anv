@@ -1,5 +1,6 @@
-CFLAGS = -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
+.SILENT: all all-build all-run clean
 
+CFLAGS = -Wall -Wextra -Werror -pedantic -std=c99
 OUTDIR = build
 
 all: all-build all-run
