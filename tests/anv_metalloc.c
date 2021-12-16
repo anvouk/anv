@@ -1,8 +1,9 @@
-#include "anv_testsuite.h"
+#include "../include/anv_testsuite.h"
 
 #include <stdlib.h>
 
-#include "anv_metalloc.h"
+#define ANV_METALLOC_IMPLEMENTATION
+#include "../include/anv_metalloc.h"
 
 typedef struct metadata_t {
     int a, b;
@@ -12,7 +13,7 @@ ANV_TESTSUITE_FIXTURE(anv_metalloc_test_malloc)
 {
     /* alloc test */
     metadata_t meta = { 10, 20 };
-	void *mem = anv_meta_malloc(&meta, sizeof(metadata_t), 100);
+	  void *mem = anv_meta_malloc(&meta, sizeof(metadata_t), 100);
     expect(mem);
 
     expect(anv_meta_isvalid(mem));
@@ -145,3 +146,11 @@ ANV_TESTSUITE(tests_anv_metalloc,
     ANV_TESTSUITE_ADD(anv_metalloc_test_meta_free),
     ANV_TESTSUITE_ADD(anv_metalloc_test_meta_malloc_no_meta),
     );
+
+int
+main(void)
+{
+  ANV_TESTSUITE_BEGIN(stdout);
+  ANV_TESTSUITE_RUN(tests_anv_metalloc, stdout);
+  ANV_TESTSUITE_END(stdout);
+}

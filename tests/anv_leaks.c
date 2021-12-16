@@ -1,6 +1,7 @@
-#include "anv_testsuite.h"
+#include "../include/anv_testsuite.h"
 
-#include "anv_leaks.h"
+#define ANV_LEAKS_IMPLEMENTATION
+#include "../include/anv_leaks.h"
 
 static FILE *anv_leaks_out = NULL;
 
@@ -119,7 +120,7 @@ ANV_TESTSUITE_FIXTURE(anv_leaks_test_get_leaks)
 
     /* this should not trigger */
     anv_leaks_test__print_leaks(leaks, leaks_count);
-    expect_msg(leaks_count == 0, "we 'have' memory leaks while we should not!"); 
+    expect_msg(leaks_count == 0, "we 'have' memory leaks while we should not!");
 
     void *mem = malloc(10);
     expect(mem);
@@ -221,3 +222,11 @@ ANV_TESTSUITE(tests_anv_leaks,
     ANV_TESTSUITE_ADD(anv_leaks_test_check_no_leaks),
     ANV_TESTSUITE_ADD(anv_leaks_test_shutdown),
     );
+
+int
+main(void)
+{
+  ANV_TESTSUITE_BEGIN(stdout);
+  ANV_TESTSUITE_RUN(tests_anv_leaks, stdout);
+  ANV_TESTSUITE_END(stdout);
+}
