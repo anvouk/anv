@@ -1,4 +1,4 @@
-#include "../include/anv_testsuite.h"
+#include "../include/anv_testsuite_2.h"
 
 #include <stdlib.h>
 
@@ -142,19 +142,17 @@ ANV_TESTSUITE_FIXTURE(anv_metalloc_test_meta_malloc_no_meta)
 ANV_TESTSUITE(
     tests_anv_metalloc,
     /* allocation/access/free */
-    ANV_TESTSUITE_ADD(anv_metalloc_test_malloc),
-    ANV_TESTSUITE_ADD(anv_metalloc_test_realloc),
-    ANV_TESTSUITE_ADD(anv_metalloc_test_calloc),
+    ANV_TESTSUITE_REGISTER(anv_metalloc_test_malloc),
+    ANV_TESTSUITE_REGISTER(anv_metalloc_test_realloc),
+    ANV_TESTSUITE_REGISTER(anv_metalloc_test_calloc),
     /* meta */
-    ANV_TESTSUITE_ADD(anv_metalloc_test_meta_edit),
-    ANV_TESTSUITE_ADD(anv_metalloc_test_meta_free),
-    ANV_TESTSUITE_ADD(anv_metalloc_test_meta_malloc_no_meta),
+    ANV_TESTSUITE_REGISTER(anv_metalloc_test_meta_edit),
+    ANV_TESTSUITE_REGISTER(anv_metalloc_test_meta_free),
+    ANV_TESTSUITE_REGISTER(anv_metalloc_test_meta_malloc_no_meta),
 );
 
 int
 main(void)
 {
-    ANV_TESTSUITE_BEGIN(stdout);
     ANV_TESTSUITE_RUN(tests_anv_metalloc, stdout);
-    ANV_TESTSUITE_END(stdout);
 }

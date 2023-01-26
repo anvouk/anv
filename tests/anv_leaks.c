@@ -1,4 +1,4 @@
-#include "../include/anv_testsuite.h"
+#include "../include/anv_testsuite_2.h"
 
 #define ANV_LEAKS_IMPLEMENTATION
 #include "../include/anv_leaks.h"
@@ -217,23 +217,21 @@ ANV_TESTSUITE_FIXTURE(anv_leaks_test_check_no_leaks)
 /* don't change invocation order carelessly! */
 ANV_TESTSUITE(
     tests_anv_leaks,
-    ANV_TESTSUITE_ADD(anv_leaks_test_init),
+    ANV_TESTSUITE_REGISTER(anv_leaks_test_init),
     /* allocation/free */
-    ANV_TESTSUITE_ADD(anv_leaks_test_malloc),
-    ANV_TESTSUITE_ADD(anv_leaks_test_realloc),
-    ANV_TESTSUITE_ADD(anv_leaks_test_calloc),
+    ANV_TESTSUITE_REGISTER(anv_leaks_test_malloc),
+    ANV_TESTSUITE_REGISTER(anv_leaks_test_realloc),
+    ANV_TESTSUITE_REGISTER(anv_leaks_test_calloc),
     /* other */
-    ANV_TESTSUITE_ADD(anv_leaks_test_get_leaks),
-    ANV_TESTSUITE_ADD(anv_leaks_test_multi_leaks),
+    ANV_TESTSUITE_REGISTER(anv_leaks_test_get_leaks),
+    ANV_TESTSUITE_REGISTER(anv_leaks_test_multi_leaks),
     /* shutdown checks */
-    ANV_TESTSUITE_ADD(anv_leaks_test_check_no_leaks),
-    ANV_TESTSUITE_ADD(anv_leaks_test_shutdown),
+    ANV_TESTSUITE_REGISTER(anv_leaks_test_check_no_leaks),
+    ANV_TESTSUITE_REGISTER(anv_leaks_test_shutdown),
 );
 
 int
 main(void)
 {
-    ANV_TESTSUITE_BEGIN(stdout);
     ANV_TESTSUITE_RUN(tests_anv_leaks, stdout);
-    ANV_TESTSUITE_END(stdout);
 }
