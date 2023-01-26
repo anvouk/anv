@@ -84,7 +84,7 @@
 #define ANV_TESTSUITE_H
 
 #include <assert.h> /* for assert() */
-#include <stdio.h>  /* for FILE, fprintf() */
+#include <stdio.h> /* for FILE, fprintf() */
 
 #define ANV_TESTSUITE__LEN(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -93,61 +93,65 @@ typedef struct anv_testsuite_fixture {
     void (*fixture)(int *out_res, FILE *out_file);
 } anv_testsuite_fixture;
 
-#define ANV_TESTSUITE_FIXTURE(fixture) \
+#define ANV_TESTSUITE_FIXTURE(fixture)                                         \
     void fixture(int *out_res, FILE *out_file)
 
-#define ANV_TESTSUITE_ADD(fixture) \
-    {                              \
-        #fixture, fixture          \
+#define ANV_TESTSUITE_ADD(fixture)                                             \
+    {                                                                          \
+        #fixture, fixture                                                      \
     }
 
-#define ANV_TESTSUITE(suitename, ...)           \
-    const anv_testsuite_fixture suitename[] = { \
-            __VA_ARGS__}
+#define ANV_TESTSUITE(suitename, ...)                                          \
+    const anv_testsuite_fixture suitename[] = { __VA_ARGS__ }
 
-#define ANV_TESTSUITE_BEGIN(out_file) \
+#define ANV_TESTSUITE_BEGIN(out_file)                                          \
     fprintf(out_file, "==== BEGIN RUNNING TESTS ====\n")
 
-#define ANV_TESTSUITE_END(out_file) \
+#define ANV_TESTSUITE_END(out_file)                                            \
     fprintf(out_file, "==== END RUNNING TESTS ====\n\n")
 
-#define ANV_TESTSUITE_RUN(suitename, out_file)                                      \
-    do {                                                                            \
-        int total_fails = 0;                                                        \
-        fprintf(out_file, "---- BEGIN TEST SUITE: %s ----\n\n", #suitename);        \
-        for (size_t i = 0; i < ANV_TESTSUITE__LEN(suitename); ++i) {                \
-            fprintf(out_file, "[%zu] %-30s => ", i, ((suitename)[i]).fixture_name); \
-            int result = 1;                                                         \
-            ((suitename)[i]).fixture(&result, out_file);                            \
-            if (result) {                                                           \
-                fprintf(out_file, "SUCCESS\n");                                     \
-            } else {                                                                \
-                fprintf(out_file, "\n");                                            \
-                ++total_fails;                                                      \
-            }                                                                       \
-        }                                                                           \
-        fprintf(out_file, "\nSUCCESS: %d/%d\n",                                     \
-                (int) ANV_TESTSUITE__LEN(suitename) - total_fails,                  \
-                (int) ANV_TESTSUITE__LEN(suitename));                               \
-        fprintf(out_file, "\n---- END TEST SUITE: %s ----\n", #suitename);          \
+#define ANV_TESTSUITE_RUN(suitename, out_file)                                 \
+    do {                                                                       \
+        int total_fails = 0;                                                   \
+        fprintf(out_file, "---- BEGIN TEST SUITE: %s ----\n\n", #suitename);   \
+        for (size_t i = 0; i < ANV_TESTSUITE__LEN(suitename); ++i) {           \
+            fprintf(                                                           \
+                out_file, "[%zu] %-30s => ", i, ((suitename)[i]).fixture_name  \
+            );                                                                 \
+            int result = 1;                                                    \
+            ((suitename)[i]).fixture(&result, out_file);                       \
+            if (result) {                                                      \
+                fprintf(out_file, "SUCCESS\n");                                \
+            } else {                                                           \
+                fprintf(out_file, "\n");                                       \
+                ++total_fails;                                                 \
+            }                                                                  \
+        }                                                                      \
+        fprintf(                                                               \
+            out_file,                                                          \
+            "\nSUCCESS: %d/%d\n",                                              \
+            (int)ANV_TESTSUITE__LEN(suitename) - total_fails,                  \
+            (int)ANV_TESTSUITE__LEN(suitename)                                 \
+        );                                                                     \
+        fprintf(out_file, "\n---- END TEST SUITE: %s ----\n", #suitename);     \
     } while (0)
 
-#define anv_testsuite_expect(cond)                               \
-    if (!(cond)) {                                               \
-        fprintf(out_file, "FAILURE(%d): '%s'", __LINE__, #cond); \
-        *out_res = 0;                                            \
-        return;                                                  \
+#define anv_testsuite_expect(cond)                                             \
+    if (!(cond)) {                                                             \
+        fprintf(out_file, "FAILURE(%d): '%s'", __LINE__, #cond);               \
+        *out_res = 0;                                                          \
+        return;                                                                \
     }
 
-#define anv_testsuite_expect_msg(cond, msg)                                \
-    if (!(cond)) {                                                         \
-        fprintf(out_file, "FAILURE(%d): '%s' (%s)", __LINE__, #cond, msg); \
-        *out_res = 0;                                                      \
-        return;                                                            \
+#define anv_testsuite_expect_msg(cond, msg)                                    \
+    if (!(cond)) {                                                             \
+        fprintf(out_file, "FAILURE(%d): '%s' (%s)", __LINE__, #cond, msg);     \
+        *out_res = 0;                                                          \
+        return;                                                                \
     }
 
 #ifndef ANV_TESTSUITE_DISABLE_ABBREVIATIONS
-    #define expect anv_testsuite_expect
+    #define expect     anv_testsuite_expect
     #define expect_msg anv_testsuite_expect_msg
 #endif
 

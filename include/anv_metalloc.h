@@ -69,7 +69,12 @@
     int main(void)
     {
         int metaval = 20;
-        int *int_arr = anv_meta_malloc(&metaval, sizeof(metaval), sizeof(int) * 10);
+        int *int_arr = anv_meta_malloc(
+            &metaval,
+            sizeof(metaval),
+            sizeof(int) * 10
+        );
+
         // int_arr works like any other dynamic array
 
         // retrieve metadata
@@ -109,9 +114,12 @@ ANV_METALLOC_EXP void anv_meta_set(void *mem, void *metadata);
 
 ANV_METALLOC_EXP size_t anv_meta_getpadding(void *mem);
 
-ANV_METALLOC_EXP void *anv_meta_malloc(void *metadata, anv_meta_size_t data_sz, size_t mem_sz);
+ANV_METALLOC_EXP void *
+anv_meta_malloc(void *metadata, anv_meta_size_t data_sz, size_t mem_sz);
 ANV_METALLOC_EXP void *anv_meta_realloc(void *mem, size_t new_sz);
-ANV_METALLOC_EXP void *anv_meta_calloc(void *metadata, anv_meta_size_t data_sz, size_t nitems, size_t size);
+ANV_METALLOC_EXP void *anv_meta_calloc(
+    void *metadata, anv_meta_size_t data_sz, size_t nitems, size_t size
+);
 ANV_METALLOC_EXP void anv_meta_free(void *mem);
 
 #ifdef ANV_METALLOC_IMPLEMENTATION
@@ -125,17 +133,18 @@ ANV_METALLOC_EXP void anv_meta_free(void *mem);
         #define anv_meta__assert(x) assert(x)
     #endif
 
-    #define CHKB 0x12345678
+    #define CHKB   0x12345678
     #define CHKB_T uint32_t
 
 typedef CHKB_T chkb_t;
 
     #define METASZ_SZ sizeof(anv_meta_size_t)
-    #define CHKB_SZ sizeof(chkb_t)
+    #define CHKB_SZ   sizeof(chkb_t)
 
-int anv_meta_isvalid(void *mem)
+int
+anv_meta_isvalid(void *mem)
 {
-    return *(chkb_t *) ((size_t) mem - CHKB_SZ) == (chkb_t) CHKB ? 1 : 0;
+    return *(chkb_t *)((size_t)mem - CHKB_SZ) == (chkb_t)CHKB ? 1 : 0;
 }
 
 anv_meta_size_t
@@ -144,10 +153,11 @@ anv_meta_getsz(void *mem)
     /* return metadata size */
     anv_meta__assert(anv_meta_isvalid(mem));
     #ifdef ANV_METALLOC_ENABLE_EXTRA_CHECKS
-    if (!anv_meta_isvalid(mem))
+    if (!anv_meta_isvalid(mem)) {
         return 0;
+    }
     #endif
-    return *(anv_meta_size_t *) ((size_t) mem - (METASZ_SZ + CHKB_SZ));
+    return *(anv_meta_size_t *)((size_t)mem - (METASZ_SZ + CHKB_SZ));
 }
 
 void *
@@ -155,21 +165,28 @@ anv_meta_get(void *mem)
 {
     anv_meta__assert(anv_meta_isvalid(mem));
     #ifdef ANV_METALLOC_ENABLE_EXTRA_CHECKS
-    if (!anv_meta_isvalid(mem))
+    if (!anv_meta_isvalid(mem)) {
         return NULL;
+    }
     #endif
-    return (void *) ((size_t) mem - (anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ));
+    return (void *)((size_t)mem - (anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ));
 }
 
-void anv_meta_set(void *mem, void *metadata)
+void
+anv_meta_set(void *mem, void *metadata)
 {
     anv_meta__assert(anv_meta_isvalid(mem));
     #ifdef ANV_METALLOC_ENABLE_EXTRA_CHECKS
-    if (!anv_meta_isvalid(mem))
+    if (!anv_meta_isvalid(mem)) {
         return;
+    }
     #endif
     anv_meta_size_t data_sz = anv_meta_getsz(mem);
-    memcpy((void *) ((size_t) mem - (data_sz + METASZ_SZ + CHKB_SZ)), metadata, data_sz);
+    memcpy(
+        (void *)((size_t)mem - (data_sz + METASZ_SZ + CHKB_SZ)),
+        metadata,
+        data_sz
+    );
 }
 
 size_t
@@ -177,66 +194,76 @@ anv_meta_getpadding(void *mem)
 {
     anv_meta__assert(anv_meta_isvalid(mem));
     #ifdef ANV_METALLOC_ENABLE_EXTRA_CHECKS
-    if (!anv_meta_isvalid(mem))
+    if (!anv_meta_isvalid(mem)) {
         return 0;
+    }
     #endif
-    return (size_t) (anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ);
+    return (size_t)(anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ);
 }
 
 void *
 anv_meta_malloc(void *metadata, anv_meta_size_t data_sz, size_t mem_sz)
 {
     void *mem = malloc(mem_sz + CHKB_SZ + data_sz);
-    if (!mem)
+    if (!mem) {
         return NULL;
-    if (metadata)
+    }
+    if (metadata) {
         memcpy(mem, metadata, data_sz);
-    else
+    } else {
         memset(mem, 0, data_sz);
-    *(anv_meta_size_t *) ((size_t) mem + data_sz) = data_sz;
-    *(chkb_t *) ((size_t) mem + data_sz + METASZ_SZ) = CHKB;
-    return (void *) ((size_t) mem + data_sz + METASZ_SZ + CHKB_SZ);
+    }
+    *(anv_meta_size_t *)((size_t)mem + data_sz) = data_sz;
+    *(chkb_t *)((size_t)mem + data_sz + METASZ_SZ) = CHKB;
+    return (void *)((size_t)mem + data_sz + METASZ_SZ + CHKB_SZ);
 }
 
 void *
 anv_meta_realloc(void *mem, size_t new_sz)
 {
     anv_meta__assert(anv_meta_isvalid(mem));
-    anv_meta__assert(mem && "use meta_malloc for init and meta_realloc for resize only");
+    anv_meta__assert(
+        mem && "use meta_malloc for init and meta_realloc for resize only"
+    );
     #ifdef ANV_METALLOC_ENABLE_EXTRA_CHECKS
-    if (!anv_meta_isvalid(mem))
+    if (!anv_meta_isvalid(mem)) {
         return NULL;
+    }
     #endif
     size_t padd = anv_meta_getpadding(mem);
-    void *actual_mem = (void *) ((size_t) mem - padd);
+    void *actual_mem = (void *)((size_t)mem - padd);
     void *reallocated_mem = realloc(actual_mem, new_sz);
     if (!reallocated_mem) {
         free(actual_mem);
         return NULL;
     }
-    return (void *) ((size_t) reallocated_mem + padd);
+    return (void *)((size_t)reallocated_mem + padd);
 }
 
 void *
-anv_meta_calloc(void *metadata, anv_meta_size_t data_sz, size_t nitems, size_t size)
+anv_meta_calloc(
+    void *metadata, anv_meta_size_t data_sz, size_t nitems, size_t size
+)
 {
     /* not really using calloc here :) */
     size_t mem_sz = nitems * size;
     void *mem = anv_meta_malloc(metadata, data_sz, mem_sz);
-    if (!mem)
+    if (!mem) {
         return NULL;
+    }
     size_t padd = anv_meta_getpadding(mem);
-    memset((void *) ((size_t) mem - padd), 0, padd);
+    memset((void *)((size_t)mem - padd), 0, padd);
     return mem;
 }
 
-void anv_meta_free(void *mem)
+void
+anv_meta_free(void *mem)
 {
     if (!anv_meta_isvalid(mem)) {
         free(mem);
         return;
     }
-    free((void *) ((size_t) mem - (anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ)));
+    free((void *)((size_t)mem - (anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ)));
 }
 
 #endif /* ANV_METALLOC_IMPLEMENTATION */

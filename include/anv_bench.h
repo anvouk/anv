@@ -83,7 +83,7 @@
  */
 
 #define _ANVSTR_VA(...) #__VA_ARGS__
-#define ANVSTR_VA _ANVSTR_VA
+#define ANVSTR_VA       _ANVSTR_VA
 
 #ifdef _MSC_VER
     #define ANV_BENCH_NOINLINE __declspec(noinline)
@@ -103,25 +103,35 @@
     single bench
 ------------------------------------------------------------------------------*/
 
-#define ANV_BENCH_WITH_NAME(file, n_runs, name, func, ...)                 \
-    do {                                                                   \
-        uint64_t _tot = 0;                                                 \
-        volatile int _j;                                                   \
-        for (_j = 0; _j < n_runs; ++_j) {                                  \
-            uint64_t _start, _end;                                         \
-            _start = (uint64_t) ANV_BENCH_FUNC();                          \
-            func(__VA_ARGS__);                                             \
-            _end = (uint64_t) ANV_BENCH_FUNC();                            \
-            _tot += _end - _start;                                         \
-        }                                                                  \
-        fprintf(file, "%-50s calls: %.4d %10s %lld\n", name, (int) n_runs, \
-                "value:", _tot / n_runs);                                  \
+#define ANV_BENCH_WITH_NAME(file, n_runs, name, func, ...)                     \
+    do {                                                                       \
+        uint64_t _tot = 0;                                                     \
+        volatile int _j;                                                       \
+        for (_j = 0; _j < n_runs; ++_j) {                                      \
+            uint64_t _start, _end;                                             \
+            _start = (uint64_t)ANV_BENCH_FUNC();                               \
+            func(__VA_ARGS__);                                                 \
+            _end = (uint64_t)ANV_BENCH_FUNC();                                 \
+            _tot += _end - _start;                                             \
+        }                                                                      \
+        fprintf(                                                               \
+            file,                                                              \
+            "%-50s calls: %.4d %10s %lld\n",                                   \
+            name,                                                              \
+            (int)n_runs,                                                       \
+            "value:",                                                          \
+            _tot / n_runs                                                      \
+        );                                                                     \
     } while (0)
 
-#define ANV_BENCH(file, n_runs, func, ...)                                    \
-    ANV_BENCH_WITH_NAME(file, n_runs,                                         \
-                        ANVSTR_VA(func) "(" ANVSTR_VA(__VA_ARGS__) ")", func, \
-                        __VA_ARGS__)
+#define ANV_BENCH(file, n_runs, func, ...)                                     \
+    ANV_BENCH_WITH_NAME(                                                       \
+        file,                                                                  \
+        n_runs,                                                                \
+        ANVSTR_VA(func) "(" ANVSTR_VA(__VA_ARGS__) ")",                        \
+        func,                                                                  \
+        __VA_ARGS__                                                            \
+    )
 
 #define ANV_BENCH_QUICK(func, ...) ANV_BENCH(stdout, 1000, func, __VA_ARGS__)
 
@@ -134,19 +144,21 @@
     for (_i = 0; _i < (g_runs); ++_i) {                                        \
         FILE *_outfile = file;                                                 \
         uint64_t _single_runs = (n_runs);                                      \
-        fprintf(file,                                                          \
-                "============================================================" \
-                "========================= n. %.2d\n",                         \
-                _i + 1)
+        fprintf(                                                               \
+            file,                                                              \
+            "============================================================"     \
+            "========================= n. %.2d\n",                             \
+            _i + 1                                                             \
+        )
 
-#define ANV_BENCH_ADD(func, ...) \
+#define ANV_BENCH_ADD(func, ...)                                               \
     ANV_BENCH(_outfile, _single_runs, func, __VA_ARGS__)
 
-#define ANV_BENCH_ADD_WITH_NAME(name, func, ...) \
+#define ANV_BENCH_ADD_WITH_NAME(name, func, ...)                               \
     ANV_BENCH_WITH_NAME(_outfile, _single_runs, name, func, __VA_ARGS__)
 
-#define ANV_BENCH_END() \
-    }                   \
-    ((void) 0) /* for the ; */
+#define ANV_BENCH_END()                                                        \
+    }                                                                          \
+    ((void)0) /* for the ; */
 
 #endif /* ANV_BENCH_H */

@@ -63,40 +63,42 @@
 extern "C" {
 #endif
 
-#define ANV_TRACE_DEBUG 0   /**< verbose. */
-#define ANV_TRACE_INFO 1    /**< common log message. */
-#define ANV_TRACE_WARNING 2 /**< warning log message. */
-#define ANV_TRACE_ERROR 3   /**< current operation aborted. the program will not crash. */
-#define ANV_TRACE_FATAL 4   /**< critical failure. program crash imminent. */
+/** verbose. */
+#define ANV_TRACE_DEBUG   0
+/** common log message. */
+#define ANV_TRACE_INFO    1
+/** warning log message. */
+#define ANV_TRACE_WARNING 2
+/** current operation aborted. the program will not crash. */
+#define ANV_TRACE_ERROR   3
+/** critical failure. program crash imminent. */
+#define ANV_TRACE_FATAL   4
 
 ANV_TRACE_EXP void anv_trace_init(FILE *file);
 ANV_TRACE_EXP void anv_trace_quit(void);
 
 ANV_TRACE_EXP void anv_trace_(
-        const char *filename,
-        int line,
-        const char *func,
-        int ctr,
-        const char *format,
-        ...);
+    const char *filename,
+    int line,
+    const char *func,
+    int ctr,
+    const char *format,
+    ...
+);
 
-#define anv_trace(ctr, format, ...) \
+#define anv_trace(ctr, format, ...)                                            \
     anv_trace_(__FILE__, __LINE__, __FUNCTION__, ctr, format, __VA_ARGS__)
 
-#define anv_traced(format, ...) \
-    anv_trace(ANV_TRACE_DEBUG, format, __VA_ARGS__)
+#define anv_traced(format, ...) anv_trace(ANV_TRACE_DEBUG, format, __VA_ARGS__)
 
-#define anv_tracei(format, ...) \
-    anv_trace(ANV_TRACE_INFO, format, __VA_ARGS__)
+#define anv_tracei(format, ...) anv_trace(ANV_TRACE_INFO, format, __VA_ARGS__)
 
-#define anv_tracew(format, ...) \
+#define anv_tracew(format, ...)                                                \
     anv_trace(ANV_TRACE_WARNING, format, __VA_ARGS__)
 
-#define anv_tracee(format, ...) \
-    anv_trace(ANV_TRACE_ERROR, format, __VA_ARGS__)
+#define anv_tracee(format, ...) anv_trace(ANV_TRACE_ERROR, format, __VA_ARGS__)
 
-#define anv_tracef(format, ...) \
-    anv_trace(ANV_TRACE_FATAL, format, __VA_ARGS__)
+#define anv_tracef(format, ...) anv_trace(ANV_TRACE_FATAL, format, __VA_ARGS__)
 
 #define anv_trace_enter() anv_traced("<< entering \"%s\"", __FUNCTION__)
 #define anv_trace_leave() anv_traced(">> leaving  \"%s\"", __FUNCTION__)
@@ -121,13 +123,21 @@ static FILE *anv_trc__g_out = NULL;
     #define ANV_TRACE__MAX_LOGMESSAGE_LEN 256
 
     #ifdef ANV_TRACE_NO_PRETTY_PRINT
-        #define ANV_TRACE__FORMAT_HEADER "== [MESSAGE] [%s: LINE | %s] Begin Trace (%d/%.2d/%.2d - %.2d:%.2d:%.2d)\n\n"
+        #define ANV_TRACE__FORMAT_HEADER                                       \
+            "== [MESSAGE] [%s: LINE | %s] Begin Trace (%d/%.2d/%.2d - "        \
+            "%.2d:%.2d:%.2d)\n\n"
         #define ANV_TRACE__FORMAT_MESSAGE "-- [%s] [%s:%d | %s] %s\n"
-        #define ANV_TRACE__FORMAT_FOOTER "\n== [MESSAGE] [%s: LINE | %s] End Trace   (%d/%.2d/%.2d - %.2d:%.2d:%.2d)\n"
+        #define ANV_TRACE__FORMAT_FOOTER                                       \
+            "\n== [MESSAGE] [%s: LINE | %s] End Trace   (%d/%.2d/%.2d - "      \
+            "%.2d:%.2d:%.2d)\n"
     #else
-        #define ANV_TRACE__FORMAT_HEADER "== [MESSAGE] [%25s: LINE | %-20s] Begin Trace (%d/%.2d/%.2d - %.2d:%.2d:%.2d)\n\n"
+        #define ANV_TRACE__FORMAT_HEADER                                       \
+            "== [MESSAGE] [%25s: LINE | %-20s] Begin Trace (%d/%.2d/%.2d - "   \
+            "%.2d:%.2d:%.2d)\n\n"
         #define ANV_TRACE__FORMAT_MESSAGE "-- [%-7s] [%25s:%5d | %-20s] %s\n"
-        #define ANV_TRACE__FORMAT_FOOTER "\n== [MESSAGE] [%25s: LINE | %-20s] End Trace   (%d/%.2d/%.2d - %.2d:%.2d:%.2d)\n"
+        #define ANV_TRACE__FORMAT_FOOTER                                       \
+            "\n== [MESSAGE] [%25s: LINE | %-20s] End Trace   (%d/%.2d/%.2d - " \
+            "%.2d:%.2d:%.2d)\n"
     #endif
 
 static const char *
@@ -165,33 +175,60 @@ anv_trc__print_sep(const char *format)
 {
     time_t raw = time(NULL);
     struct tm *t = localtime(&raw);
-    fprintf(anv_trc__g_out, format, "FILENAME", "FUNCTION",
-            t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
-            t->tm_hour, t->tm_min, t->tm_sec);
+    fprintf(
+        anv_trc__g_out,
+        format,
+        "FILENAME",
+        "FUNCTION",
+        t->tm_year + 1900,
+        t->tm_mon + 1,
+        t->tm_mday,
+        t->tm_hour,
+        t->tm_min,
+        t->tm_sec
+    );
 }
 
-void anv_trace_init(FILE *file)
+void
+anv_trace_init(FILE *file)
 {
     anv_trc__assert(file);
     anv_trc__g_out = file;
     anv_trc__print_sep(ANV_TRACE__FORMAT_HEADER);
 }
 
-void anv_trace_quit(void)
+void
+anv_trace_quit(void)
 {
     anv_trc__assert(anv_trc__g_out);
     anv_trc__print_sep(ANV_TRACE__FORMAT_FOOTER);
     anv_trc__g_out = NULL;
 }
 
-void anv_trace_(const char *filename, int line, const char *func, int ctr, const char *format, ...)
+void
+anv_trace_(
+    const char *filename,
+    int line,
+    const char *func,
+    int ctr,
+    const char *format,
+    ...
+)
 {
     anv_trc__assert(anv_trc__g_out);
 
     char buff[ANV_TRACE__MAX_LOGMESSAGE_LEN];
     const char *trstr = anv_trc__tostr(ctr);
 
-    sprintf(buff, ANV_TRACE__FORMAT_MESSAGE, trstr, anv_trc__get_filename(filename), line, func, format);
+    sprintf(
+        buff,
+        ANV_TRACE__FORMAT_MESSAGE,
+        trstr,
+        anv_trc__get_filename(filename),
+        line,
+        func,
+        format
+    );
 
     va_list vl;
     va_start(vl, format);

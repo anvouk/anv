@@ -1,0 +1,10 @@
+# See https://clang.llvm.org/extra/clang-tidy/checks/list.html
+---
+Checks: '-*,
+    performance-*,
+    modernize-*,
+    clang-analyzer-*,
+    bugprone-*,
+    readability-*,
+    -readability-implicit-bool-conversion,
+    -readability-identifier-length'

@@ -94,13 +94,12 @@ extern "C" {
 #endif
 
 #define ANV_HHOH_HANDLE_INVALID 0
-#define ANV_HHOH_HANDLE_C_FD 1
-#define ANV_HHOH_HANDLE_WIN32 2
-#define ANV_HHOH_HANDLE_FILE 3
+#define ANV_HHOH_HANDLE_C_FD    1
+#define ANV_HHOH_HANDLE_WIN32   2
+#define ANV_HHOH_HANDLE_FILE    3
 
 typedef struct ANV_HANDLE {
-    union
-    {
+    union {
         int fd;
         HANDLE handle;
         FILE *file;
@@ -109,12 +108,16 @@ typedef struct ANV_HANDLE {
 } ANV_HANDLE;
 
 /*------------------------------------------------------------------------------
-	open - close
+    open - close
 ------------------------------------------------------------------------------*/
 
-ANV_HHOH_EXP BOOL anv_hhoh_open_cfd(ANV_HANDLE *hd, const TCHAR *filename, int mode);
-ANV_HHOH_EXP BOOL anv_hhoh_open_win32(ANV_HANDLE *hd, const TCHAR *filename, DWORD mode, BOOL shared);
-ANV_HHOH_EXP BOOL anv_hhoh_open_file(ANV_HANDLE *hd, const TCHAR *filename, const TCHAR *mode);
+ANV_HHOH_EXP BOOL
+anv_hhoh_open_cfd(ANV_HANDLE *hd, const TCHAR *filename, int mode);
+ANV_HHOH_EXP BOOL anv_hhoh_open_win32(
+    ANV_HANDLE *hd, const TCHAR *filename, DWORD mode, BOOL shared
+);
+ANV_HHOH_EXP BOOL
+anv_hhoh_open_file(ANV_HANDLE *hd, const TCHAR *filename, const TCHAR *mode);
 
 ANV_HHOH_EXP BOOL anv_hhoh_close_cfd(ANV_HANDLE *hd);
 ANV_HHOH_EXP BOOL anv_hhoh_close_win32(ANV_HANDLE *hd);
@@ -123,7 +126,7 @@ ANV_HHOH_EXP BOOL anv_hhoh_close_file(ANV_HANDLE *hd);
 ANV_HHOH_EXP BOOL anv_hhoh_close_auto(ANV_HANDLE *hd);
 
 /*------------------------------------------------------------------------------
-	conversions
+    conversions
 ------------------------------------------------------------------------------*/
 
 ANV_HHOH_EXP BOOL anv_hhoh_file_to_cfd(ANV_HANDLE *hd);
@@ -153,15 +156,12 @@ ANV_HHOH_EXP BOOL anv_hhoh_cfd_to_win32(ANV_HANDLE *hd);
 ------------------------------------------------------------------------------*/
 
 // _O_CREAT, _O_TEXT, ...
-BOOL anv_hhoh_open_cfd(ANV_HANDLE *hd, const TCHAR *filename, int mode)
+BOOL
+anv_hhoh_open_cfd(ANV_HANDLE *hd, const TCHAR *filename, int mode)
 {
     // https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/sopen-s-wsopen-s
-    errno_t err = _tsopen_s(
-            &hd->fd,
-            filename,
-            mode,
-            _SH_DENYNO,
-            _S_IREAD | _S_IWRITE);
+    errno_t err
+        = _tsopen_s(&hd->fd, filename, mode, _SH_DENYNO, _S_IREAD | _S_IWRITE);
     if (err != 0) {
         hd->current = ANV_HHOH_HANDLE_INVALID;
         return FALSE;
@@ -171,17 +171,21 @@ BOOL anv_hhoh_open_cfd(ANV_HANDLE *hd, const TCHAR *filename, int mode)
 }
 
 // CREATE_NEW, OPEN_EXISTING, ...
-BOOL anv_hhoh_open_win32(ANV_HANDLE *hd, const TCHAR *filename, DWORD mode, BOOL shared)
+BOOL
+anv_hhoh_open_win32(
+    ANV_HANDLE *hd, const TCHAR *filename, DWORD mode, BOOL shared
+)
 {
     // https://docs.microsoft.com/en-us/windows/desktop/api/fileapi/nf-fileapi-createfilea
     HANDLE hfile = CreateFile(
-            filename,
-            GENERIC_READ | GENERIC_WRITE,
-            shared ? FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE : 0,
-            NULL,
-            mode,
-            FILE_ATTRIBUTE_NORMAL,
-            NULL);
+        filename,
+        GENERIC_READ | GENERIC_WRITE,
+        shared ? FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE : 0,
+        NULL,
+        mode,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
     if (hfile == INVALID_HANDLE_VALUE) {
         hd->current = ANV_HHOH_HANDLE_INVALID;
         return FALSE;
@@ -192,7 +196,8 @@ BOOL anv_hhoh_open_win32(ANV_HANDLE *hd, const TCHAR *filename, DWORD mode, BOOL
 }
 
 // "r", "w", ...
-BOOL anv_hhoh_open_file(ANV_HANDLE *hd, const TCHAR *filename, const TCHAR *mode)
+BOOL
+anv_hhoh_open_file(ANV_HANDLE *hd, const TCHAR *filename, const TCHAR *mode)
 {
     // https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/fopen-wfopen?f1url=https%3A%2F%2Fmsdn.microsoft.com%2Fquery%2Fdev15.query%3FappId%3DDev15IDEF1%26l%3DEN-US%26k%3Dk(TCHAR%2F_tfopen)%3Bk(_tfopen)%3Bk(DevLang-C%2B%2B)%3Bk(TargetOS-Windows)%26rd%3Dtrue%26f%3D255%26MSPPError%3D-2147217396
     FILE *file = _tfopen(filename, mode);
@@ -209,28 +214,32 @@ BOOL anv_hhoh_open_file(ANV_HANDLE *hd, const TCHAR *filename, const TCHAR *mode
     close Functions
 ------------------------------------------------------------------------------*/
 
-BOOL anv_hhoh_close_cfd(ANV_HANDLE *hd)
+BOOL
+anv_hhoh_close_cfd(ANV_HANDLE *hd)
 {
     anv_hhoh__assert(hd->current == ANV_HHOH_HANDLE_C_FD);
     hd->current = ANV_HHOH_HANDLE_INVALID;
     return _close(hd->fd) == 0;
 }
 
-BOOL anv_hhoh_close_win32(ANV_HANDLE *hd)
+BOOL
+anv_hhoh_close_win32(ANV_HANDLE *hd)
 {
     anv_hhoh__assert(hd->current == ANV_HHOH_HANDLE_WIN32);
     hd->current = ANV_HHOH_HANDLE_INVALID;
     return CloseHandle(hd->handle);
 }
 
-BOOL anv_hhoh_close_file(ANV_HANDLE *hd)
+BOOL
+anv_hhoh_close_file(ANV_HANDLE *hd)
 {
     anv_hhoh__assert(hd->current == ANV_HHOH_HANDLE_FILE);
     hd->current = ANV_HHOH_HANDLE_INVALID;
     return fclose(hd->file) == 0;
 }
 
-BOOL anv_hhoh_close_auto(ANV_HANDLE *hd)
+BOOL
+anv_hhoh_close_auto(ANV_HANDLE *hd)
 {
     switch (hd->current) {
         case ANV_HHOH_HANDLE_C_FD:
@@ -249,7 +258,8 @@ BOOL anv_hhoh_close_auto(ANV_HANDLE *hd)
     conversions
 ------------------------------------------------------------------------------*/
 
-BOOL anv_hhoh_file_to_cfd(ANV_HANDLE *hd)
+BOOL
+anv_hhoh_file_to_cfd(ANV_HANDLE *hd)
 {
     hd->fd = _fileno(hd->file);
     if (hd->fd == -1) {
@@ -261,7 +271,8 @@ BOOL anv_hhoh_file_to_cfd(ANV_HANDLE *hd)
 }
 
 // "r", "w", ...
-BOOL anv_hhoh_cfd_to_file(ANV_HANDLE *hd, const TCHAR *mode)
+BOOL
+anv_hhoh_cfd_to_file(ANV_HANDLE *hd, const TCHAR *mode)
 {
     // https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/fdopen-wfdopen?f1url=https%3A%2F%2Fmsdn.microsoft.com%2Fquery%2Fdev15.query%3FappId%3DDev15IDEF1%26l%3DEN-US%26k%3Dk(TCHAR%2F_tfdopen)%3Bk(_tfdopen)%3Bk(DevLang-C%2B%2B)%3Bk(TargetOS-Windows)%26rd%3Dtrue%26f%3D255%26MSPPError%3D-2147217396
     hd->file = _tfdopen(hd->fd, mode);
@@ -274,10 +285,11 @@ BOOL anv_hhoh_cfd_to_file(ANV_HANDLE *hd, const TCHAR *mode)
 }
 
 // _O_APPEND, _O_RDONLY, _O_TEXT, _O_WTEXT
-BOOL anv_hhoh_win32_to_cfd(ANV_HANDLE *hd, int flags)
+BOOL
+anv_hhoh_win32_to_cfd(ANV_HANDLE *hd, int flags)
 {
     // https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/open-osfhandle?f1url=https%3A%2F%2Fmsdn.microsoft.com%2Fquery%2Fdev15.query%3FappId%3DDev15IDEF1%26l%3DEN-US%26k%3Dk(CORECRT_IO%2F_open_osfhandle)%3Bk(_open_osfhandle)%3Bk(DevLang-C%2B%2B)%3Bk(TargetOS-Windows)%26rd%3Dtrue
-    hd->fd = _open_osfhandle((intptr_t) hd->handle, flags);
+    hd->fd = _open_osfhandle((intptr_t)hd->handle, flags);
     if (hd->fd == -1) {
         hd->current = ANV_HHOH_HANDLE_INVALID;
         return FALSE;
@@ -286,9 +298,10 @@ BOOL anv_hhoh_win32_to_cfd(ANV_HANDLE *hd, int flags)
     return TRUE;
 }
 
-BOOL anv_hhoh_cfd_to_win32(ANV_HANDLE *hd)
+BOOL
+anv_hhoh_cfd_to_win32(ANV_HANDLE *hd)
 {
-    hd->handle = (HANDLE) _get_osfhandle(hd->fd);
+    hd->handle = (HANDLE)_get_osfhandle(hd->fd);
     if (hd->handle == INVALID_HANDLE_VALUE) {
         hd->current = ANV_HHOH_HANDLE_INVALID;
         return FALSE;
