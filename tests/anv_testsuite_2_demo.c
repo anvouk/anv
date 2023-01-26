@@ -66,10 +66,47 @@ ANV_TESTSUITE(
     ANV_TESTSUITE_REGISTER(tests_mixed_failure_msg),
 );
 
+ANV_TESTSUITE_FIXTURE(tests_config_success)
+{
+    expect(1);
+}
+
+ANV_TESTSUITE_FIXTURE(tests_config_success_msg)
+{
+    expect_msg(0, "This is a fail");
+}
+
+static int
+tests_config_setup(FILE *out_file)
+{
+    fprintf(out_file, "setup!\n");
+    return 0;
+}
+
+static int
+tests_config_teardown(FILE *out_file)
+{
+    fprintf(out_file, "teardown!\n");
+    return 1;
+}
+
+ANV_TESTSUITE_WITH_CONFIG(
+    tests_config,
+    ANV_TESTSUITE_REGISTER(tests_config_success),
+    ANV_TESTSUITE_REGISTER(tests_config_success_msg),
+) {
+    .setup = tests_config_setup,
+    .teardown = tests_config_teardown,
+};
+
 int
 main(void)
 {
+    // simple test suites
     ANV_TESTSUITE_RUN(tests_fail, stdout);
     ANV_TESTSUITE_RUN(tests_successful, stdout);
     ANV_TESTSUITE_RUN(tests_mixed, stdout);
+
+    // more elaborate test suites
+    ANV_TESTSUITE_RUN(tests_config, stdout);
 }

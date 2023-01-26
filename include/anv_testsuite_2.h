@@ -61,6 +61,41 @@
         ANV_TESTSUITE_RUN(my_testsuite, stdout);
     }
 
+  example with setup/teardown:
+
+    ANV_TESTSUITE_FIXTURE(tests_config_success)
+    {
+        expect(1);
+    }
+
+    static int
+    tests_config_setup(FILE *out_file)
+    {
+        fprintf(out_file, "setup!\n");
+        return 0;
+    }
+
+    static int
+    tests_config_teardown(FILE *out_file)
+    {
+        fprintf(out_file, "teardown!\n");
+        return 1; // signal teardown failed
+    }
+
+    ANV_TESTSUITE_WITH_CONFIG(
+        tests_config,
+        ANV_TESTSUITE_REGISTER(tests_config_success),
+    ) {
+        .setup = tests_config_setup,
+        .teardown = tests_config_teardown,
+    };
+
+    int
+    main(void)
+    {
+        ANV_TESTSUITE_RUN(tests_config, stdout);
+    }
+
 ------------------------------------------------------------------------------*/
 
 #ifndef ANV_TESTSUITE_2_H
@@ -94,8 +129,39 @@
     "........................................................................" \
     "......................"
 
+/**
+ * Always run before running the first fixture.
+ * If this function fails, the test suite is aborted.
+ * @param out_file file to where the test suite output is being directed to.
+ * @return 0 on success.
+ */
+typedef int (*anv_testsuite_setup_callback)(FILE *out_file);
+
+/**
+ * Always run after running the last fixture.
+ * If this function fails, the test will continue as normal.
+ * @param out_file file to where the test suite output is being directed to.
+ * @return 0 on success.
+ */
+typedef int (*anv_testsuite_teardown_callback)(FILE *out_file);
+
+/**
+ * Custom config for test suite.
+ * @note This is not a runtime config but a static one set during the test
+ *       suite declaration.
+ */
+typedef struct anv_testsuite_config {
+    anv_testsuite_setup_callback setup;
+    anv_testsuite_teardown_callback teardown;
+} anv_testsuite_config;
+
+/**
+ * Identifies a test fixture which is run by a test suite.
+ */
 typedef struct anv_testsuite_fixture {
+    /** Display name for fixture. */
     const char *fixture_name;
+    /** Fixture to run. */
     void (*fixture)(int *out_res, FILE *out_file);
 } anv_testsuite_fixture;
 
@@ -112,7 +178,17 @@ typedef struct anv_testsuite_fixture {
  * Name must be unique for current file.
  */
 #define ANV_TESTSUITE(suitename, ...)                                          \
-    static const anv_testsuite_fixture suitename[] = { __VA_ARGS__ }
+    static const anv_testsuite_fixture suitename[] = { __VA_ARGS__ };          \
+    static const anv_testsuite_config suitename##_config = { NULL, NULL }
+
+/**
+ * Define a test suite with a list of test fixtures to run scoped to current
+ * file only and a custom configuration.
+ * Name must be unique for current file.
+ */
+#define ANV_TESTSUITE_WITH_CONFIG(suitename, ...)                              \
+    static const anv_testsuite_fixture suitename[] = { __VA_ARGS__ };          \
+    static const anv_testsuite_config suitename##_config =
 
 /**
  * Register test fixture for test suite.
@@ -129,11 +205,29 @@ anv_testsuite__run(
     const anv_testsuite_fixture *suite,
     size_t suite_sz,
     const char *suitename,
-    FILE *out_file
+    FILE *out_file,
+    const anv_testsuite_config *config
 )
 {
     int total_fails = 0;
     fprintf(out_file, "Suite(%s:%d): %s\n", filename, line, suitename);
+
+    // run setup if present
+    if (config->setup) {
+        fprintf(out_file, "\nRunning setup ...\n");
+        if (config->setup(out_file) == 0) {
+            fprintf(
+                out_file,
+                "Running setup ... " ANV_TESTSUITE__STR_GREEN("SUCCESS\n\n")
+            );
+        } else {
+            fprintf(
+                out_file,
+                "Running setup ... " ANV_TESTSUITE__STR_RED("FAILURE\n\n")
+            );
+            return;
+        }
+    }
 
     char buff[128];
     char padd_buff[128];
@@ -157,6 +251,22 @@ anv_testsuite__run(
             fprintf(out_file, ANV_TESTSUITE__STR_GREEN("SUCCESS\n"));
         } else {
             ++total_fails;
+        }
+    }
+
+    // run teardown cleanup if present
+    if (config->teardown) {
+        fprintf(out_file, "\nRunning teardown ...\n");
+        if (config->teardown(out_file) == 0) {
+            fprintf(
+                out_file,
+                "Running teardown ... " ANV_TESTSUITE__STR_GREEN("SUCCESS\n\n")
+            );
+        } else {
+            fprintf(
+                out_file,
+                "Running teardown ... " ANV_TESTSUITE__STR_RED("FAILURE\n\n")
+            );
         }
     }
 
@@ -188,7 +298,8 @@ anv_testsuite__run(
         suitename,                                                             \
         ANV_TESTSUITE__LEN(suitename),                                         \
         #suitename,                                                            \
-        out_file                                                               \
+        out_file,                                                              \
+        &suitename##_config                                                    \
     )
 
 /**
