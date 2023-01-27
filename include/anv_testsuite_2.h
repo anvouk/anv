@@ -101,7 +101,6 @@
 #ifndef ANV_TESTSUITE_2_H
 #define ANV_TESTSUITE_2_H
 
-#include <assert.h> /* for assert() */
 #include <stdio.h> /* for FILE, fprintf(), snprintf */
 #include <string.h> /* for strlen */
 
@@ -117,7 +116,7 @@
 #endif
 
 /**
- * Change dotted padding for fixtures.
+ * Change dotted padding length for fixtures.
  */
 #ifndef ANV_TESTSUITE_PADDING
     #define ANV_TESTSUITE_PADDING 100
@@ -132,7 +131,7 @@
 /**
  * Always run before running the first fixture.
  * If this function fails, the test suite is aborted.
- * @param out_file file to where the test suite output is being directed to.
+ * @param out_file File to where the test suite output is being directed to.
  * @return 0 on success.
  */
 typedef int (*anv_testsuite_setup_callback)(FILE *out_file);
@@ -140,7 +139,7 @@ typedef int (*anv_testsuite_setup_callback)(FILE *out_file);
 /**
  * Always run after running the last fixture.
  * If this function fails, the test will continue as normal.
- * @param out_file file to where the test suite output is being directed to.
+ * @param out_file File to where the test suite output is being directed to.
  * @return 0 on success.
  */
 typedef int (*anv_testsuite_teardown_callback)(FILE *out_file);
@@ -156,13 +155,20 @@ typedef struct anv_testsuite_config {
 } anv_testsuite_config;
 
 /**
+ * Test fixture interface.
+ * @param out_res Must be set to non-zero values to signal errors.
+ * @param out_file Output messages destination.
+ */
+typedef void (*anv_testsuite_fixture_callback)(int *out_res, FILE *out_file);
+
+/**
  * Identifies a test fixture which is run by a test suite.
  */
 typedef struct anv_testsuite_fixture {
     /** Display name for fixture. */
     const char *fixture_name;
     /** Fixture to run. */
-    void (*fixture)(int *out_res, FILE *out_file);
+    anv_testsuite_fixture_callback fixture;
 } anv_testsuite_fixture;
 
 /**
@@ -229,15 +235,15 @@ anv_testsuite__run(
         }
     }
 
-    char buff[128];
-    char padd_buff[128];
+    char buff[128] = { 0 };
+    char padd_buff[128] = { 0 };
 
     for (size_t i = 0; i < suite_sz; ++i) {
         // pretty print info
-        snprintf(buff, 128, "  [%03ld]  %s", i, ((suite)[i]).fixture_name);
+        snprintf(buff, 128, "  [%03ld]  %s", i, suite[i].fixture_name);
         int padd_sz = ANV_TESTSUITE_PADDING - strlen(buff);
         if (padd_sz > 0) {
-            snprintf(padd_buff, padd_sz, "%s", ANV_TESTSUITE__PADDING);
+            snprintf(padd_buff, (size_t)padd_sz, "%s", ANV_TESTSUITE__PADDING);
         } else {
             padd_buff[0] = '\0';
         }
@@ -245,7 +251,7 @@ anv_testsuite__run(
 
         // run test
         int result = 0;
-        ((suite)[i]).fixture(&result, out_file);
+        suite[i].fixture(&result, out_file);
 
         if (result == 0) {
             fprintf(out_file, ANV_TESTSUITE__STR_GREEN("SUCCESS\n"));
@@ -302,54 +308,69 @@ anv_testsuite__run(
         &suitename##_config                                                    \
     )
 
+static int
+anv_testsuite__expect(
+    const char *filename,
+    int line,
+    FILE *out_file,
+    int cond,
+    const char *cond_str,
+    const char *msg
+)
+{
+    if (cond) {
+        return 0;
+    }
+
+    fprintf(out_file, ANV_TESTSUITE__STR_RED("FAILURE\n"));
+    fprintf(
+        out_file,
+        ANV_TESTSUITE__STR_RED("           LOCATION:      '%s:%d'\n"),
+        filename,
+        line
+    );
+    fprintf(
+        out_file,
+        ANV_TESTSUITE__STR_RED("           CONDITION:     '%s'\n"),
+        cond_str
+    );
+    if (msg) {
+        fprintf(
+            out_file,
+            ANV_TESTSUITE__STR_RED("           ERROR MESSAGE: '%s'\n"),
+            msg
+        );
+    }
+    return 1;
+}
+
 /**
  * Assert if condition is valid.
  */
 #define anv_testsuite_expect(cond)                                             \
-    if (!(cond)) {                                                             \
-        fprintf(out_file, ANV_TESTSUITE__STR_RED("FAILURE\n"));                \
-        fprintf(                                                               \
-            out_file,                                                          \
-            ANV_TESTSUITE__STR_RED("           LOCATION:      '%s:%d'\n"),     \
-            __FILE__,                                                          \
-            __LINE__                                                           \
+    do {                                                                       \
+        int __anv_result = anv_testsuite__expect(                              \
+            __FILE__, __LINE__, out_file, cond, #cond, NULL                    \
         );                                                                     \
-        fprintf(                                                               \
-            out_file,                                                          \
-            ANV_TESTSUITE__STR_RED("           CONDITION:     '%s'\n"),        \
-            #cond                                                              \
-        );                                                                     \
-        *out_res = 1;                                                          \
-        return;                                                                \
-    }                                                                          \
-    ((void)0)
+        if (__anv_result != 0) {                                               \
+            *out_res = __anv_result;                                           \
+            return;                                                            \
+        }                                                                      \
+    } while (0)
 
 /**
  * Assert if condition is valid and print custom msg on failure.
  */
 #define anv_testsuite_expect_msg(cond, msg)                                    \
-    if (!(cond)) {                                                             \
-        fprintf(out_file, ANV_TESTSUITE__STR_RED("FAILURE\n"));                \
-        fprintf(                                                               \
-            out_file,                                                          \
-            ANV_TESTSUITE__STR_RED("           LOCATION:      '%s:%d'\n"),     \
-            __FILE__,                                                          \
-            __LINE__                                                           \
+    do {                                                                       \
+        int __anv_result = anv_testsuite__expect(                              \
+            __FILE__, __LINE__, out_file, cond, #cond, msg                     \
         );                                                                     \
-        fprintf(                                                               \
-            out_file,                                                          \
-            ANV_TESTSUITE__STR_RED("           CONDITION:     '%s'\n"),        \
-            #cond                                                              \
-        );                                                                     \
-        fprintf(                                                               \
-            out_file,                                                          \
-            ANV_TESTSUITE__STR_RED("           ERROR MESSAGE: '%s'\n"),        \
-            msg                                                                \
-        );                                                                     \
-        *out_res = 1;                                                          \
-        return;                                                                \
-    }                                                                          \
-    ((void)0)
+        if (__anv_result != 0) {                                               \
+            *out_res = __anv_result;                                           \
+            return;                                                            \
+        }                                                                      \
+    } while (0)
 
 #ifndef ANV_TESTSUITE_DISABLE_ABBREVIATIONS
     #define expect     anv_testsuite_expect
