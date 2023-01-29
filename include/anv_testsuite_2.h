@@ -249,6 +249,10 @@ anv_testsuite__run(
         }
         fprintf(out_file, "%s %s ", buff, padd_buff);
 
+        // force flush here because if test fixture crashes we may not be able
+        // to get the line log.
+        fflush(out_file);
+
         // run test
         int result = 0;
         suite[i].fixture(&result, out_file);
