@@ -312,20 +312,15 @@ anv_testsuite__run(
         &suitename##_config                                                    \
     )
 
-static int
-anv_testsuite__expect(
+static void
+anv_testsuite__expect_failed(
     const char *filename,
     int line,
     FILE *out_file,
-    int cond,
     const char *cond_str,
     const char *msg
 )
 {
-    if (cond) {
-        return 0;
-    }
-
     fprintf(out_file, ANV_TESTSUITE__STR_RED("FAILURE\n"));
     fprintf(
         out_file,
@@ -345,7 +340,6 @@ anv_testsuite__expect(
             msg
         );
     }
-    return 1;
 }
 
 /**
@@ -353,11 +347,11 @@ anv_testsuite__expect(
  */
 #define anv_testsuite_expect(cond)                                             \
     do {                                                                       \
-        int __anv_result = anv_testsuite__expect(                              \
-            __FILE__, __LINE__, out_file, cond, #cond, NULL                    \
-        );                                                                     \
-        if (__anv_result != 0) {                                               \
-            *out_res = __anv_result;                                           \
+        if (!(cond)) {                                                         \
+            anv_testsuite__expect_failed(                                      \
+                __FILE__, __LINE__, out_file, #cond, NULL                      \
+            );                                                                 \
+            *out_res = 1;                                                      \
             return;                                                            \
         }                                                                      \
     } while (0)
@@ -367,11 +361,11 @@ anv_testsuite__expect(
  */
 #define anv_testsuite_expect_msg(cond, msg)                                    \
     do {                                                                       \
-        int __anv_result = anv_testsuite__expect(                              \
-            __FILE__, __LINE__, out_file, cond, #cond, msg                     \
-        );                                                                     \
-        if (__anv_result != 0) {                                               \
-            *out_res = __anv_result;                                           \
+        if (!(cond)) {                                                         \
+            anv_testsuite__expect_failed(                                      \
+                __FILE__, __LINE__, out_file, #cond, msg                       \
+            );                                                                 \
+            *out_res = 1;                                                      \
             return;                                                            \
         }                                                                      \
     } while (0)
