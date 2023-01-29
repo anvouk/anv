@@ -23,17 +23,30 @@
  */
 
 /*------------------------------------------------------------------------------
-    anv_testsuite_2
+    anv_testsuite_2 (https://github.com/anvouk/anv)
 --------------------------------------------------------------------------------
 
   extremely simple C unit test framework.
 
   main goals:
   - small and compact
+  - portable
   - ease of use
   - fast
   - minimal features
   - optional colors
+
+  about crashes handling:
+
+    This library optionally supports a best-effort crash detection logging and
+    graceful shutdown (see anv_testsuite_catch_crashes example).
+
+    Since the lib's goal is simplicity and portability, we do not go
+    the extra mile to get stack traces or other fancy info because they are very
+    much OS-specific.
+
+    The current implementation involves basic C signal() callbacks and logs to
+    stderr.
 
   simple example:
 
@@ -135,13 +148,41 @@
         ANV_TESTSUITE_RUN(tests_callbacks, stdout);
     }
 
+  example with basic crash handling:
+
+    ANV_TESTSUITE_FIXTURE(tests_crash_invalid_division)
+    {
+        int b = 0;
+        if (1) {
+            int c = 10 / b;
+            (void)c;
+        }
+        expect(1);
+    }
+
+    ANV_TESTSUITE(
+        tests_crash,
+        ANV_TESTSUITE_REGISTER(tests_crash_invalid_division),
+    );
+
+    int
+    main(void)
+    {
+        // enable listeners for abnormal errors
+        anv_testsuite_catch_crashes();
+
+        ANV_TESTSUITE_RUN(tests_crash, stdout);
+    }
+
 ------------------------------------------------------------------------------*/
 
 #ifndef ANV_TESTSUITE_2_H
 #define ANV_TESTSUITE_2_H
 
-#include <stdio.h> /* for FILE, fprintf(), snprintf */
-#include <string.h> /* for strlen */
+#include <signal.h> /* for signal() */
+#include <stdio.h> /* for FILE, fprintf(), snprintf() */
+#include <stdlib.h> /* for exit() */
+#include <string.h> /* for strlen() */
 
 /**
  * Toggle UNIX console colors.
@@ -249,6 +290,76 @@ typedef struct anv_testsuite_fixture {
     {                                                                          \
         #fixture_name, fixture_name                                            \
     }
+
+static void
+anv_testsuite__handle_crash(int sig)
+{
+    fprintf(
+        stderr,
+        ANV_TESTSUITE__STR_RED(
+            "\n******************** CRASH ********************\n"
+        )
+    );
+    switch (sig) {
+        case SIGABRT:
+            fprintf(
+                stderr,
+                ANV_TESTSUITE__STR_RED("           REASON:        'SIGABRT'\n")
+            );
+            break;
+        case SIGFPE:
+            fprintf(
+                stderr,
+                ANV_TESTSUITE__STR_RED("           REASON:        'SIGFPE'\n")
+            );
+            break;
+        case SIGILL:
+            fprintf(
+                stderr,
+                ANV_TESTSUITE__STR_RED("           REASON:        'SIGILL'\n")
+            );
+            break;
+        case SIGSEGV:
+            fprintf(
+                stderr,
+                ANV_TESTSUITE__STR_RED("           REASON:        'SIGSEGV'\n")
+            );
+            break;
+        default:
+            fprintf(
+                stderr,
+                ANV_TESTSUITE__STR_RED("           REASON:        '%d'\n"),
+                sig
+            );
+            break;
+    }
+    fprintf(
+        stderr,
+        ANV_TESTSUITE__STR_RED(
+            "***********************************************\n"
+        )
+    );
+    exit(1);
+}
+
+/**
+ * Catches potential crashes, logs what happened and gracefully exits.
+ * @note There is portable standard way to determine where the crash happened
+ *       and what caused it.
+ * @todo Is it worth it to implementing OS specific stack trace logging?
+ *       See https://gist.github.com/jvranish/4441299 for a possible example.
+ *       Even so, there would be not support for envs like Cygwin and MinGW. Is
+ *       the additional complexity and maintenance burden worth having a stack
+ *       trace support on some OSes?
+ */
+void
+anv_testsuite_catch_crashes(void)
+{
+    signal(SIGABRT, anv_testsuite__handle_crash);
+    signal(SIGFPE, anv_testsuite__handle_crash);
+    signal(SIGILL, anv_testsuite__handle_crash);
+    signal(SIGSEGV, anv_testsuite__handle_crash);
+}
 
 static void
 anv_testsuite__run(

@@ -130,6 +130,21 @@ ANV_TESTSUITE_WITH_CONFIG(
     .after_each = tests_callbacks_after_each,
 };
 
+ANV_TESTSUITE_FIXTURE(tests_crash_invalid_division)
+{
+    int b = 0;
+    if (1) {
+        int c = 10 / b;
+        (void)c;
+    }
+    expect(1);
+}
+
+ANV_TESTSUITE(
+    tests_crash,
+    ANV_TESTSUITE_REGISTER(tests_crash_invalid_division),
+);
+
 int
 main(void)
 {
@@ -141,4 +156,8 @@ main(void)
     // test suites with hooks
     ANV_TESTSUITE_RUN(tests_setup_teardown, stdout);
     ANV_TESTSUITE_RUN(tests_callbacks, stdout);
+
+    // test hard crashes
+    anv_testsuite_catch_crashes();
+    ANV_TESTSUITE_RUN(tests_crash, stdout);
 }
