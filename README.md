@@ -17,7 +17,6 @@ Once this is done, simply include the header like any other wherever is needed.
 |      Headers      |  OS   | Description                                                   |
 |:-----------------:|:-----:|---------------------------------------------------------------|
 |    anv_hhoh.h     |  Win  | File handles handler (thxs to windows...)                     |
-|    anv_leaks.h    | Cross | Yet another memory leaks detector (Checks for bad usages too) |
 | anv_testsuite_2.h | Cross | Simple, self-contained unit test library                      |
 |  anv_metalloc.h   | Cross | Store metadata for allocated memory blocks                    |
 
