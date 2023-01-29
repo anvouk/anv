@@ -16,10 +16,8 @@ Once this is done, simply include the header like any other wherever is needed.
 
 |      Headers      |  OS   | Description                                                   |
 |:-----------------:|:-----:|---------------------------------------------------------------|
-|    anv_bench.h    | Cross | Quick and dirty benchmarking                                  |
 |    anv_hhoh.h     |  Win  | File handles handler (thxs to windows...)                     |
 |    anv_leaks.h    | Cross | Yet another memory leaks detector (Checks for bad usages too) |
-|    anv_trace.h    | Cross | Yet another tracing library                                   |
 | anv_testsuite_2.h | Cross | Simple, self-contained unit test library                      |
 |  anv_metalloc.h   | Cross | Store metadata for allocated memory blocks                    |
 
