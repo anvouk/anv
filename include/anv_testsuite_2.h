@@ -96,6 +96,45 @@
         ANV_TESTSUITE_RUN(tests_config, stdout);
     }
 
+  example with before/after each callbacks:
+
+    ANV_TESTSUITE_FIXTURE(tests_callbacks_success)
+    {
+        expect(1);
+    }
+
+    ANV_TESTSUITE_FIXTURE(tests_callbacks_failure_msg)
+    {
+        expect_msg(0, "This is a fail");
+    }
+
+    static void
+    tests_callbacks_before_each(void)
+    {
+        printf("before_each!\n");
+    }
+
+    static void
+    tests_callbacks_after_each(void)
+    {
+        printf("after_each!\n");
+    }
+
+    ANV_TESTSUITE_WITH_CONFIG(
+        tests_callbacks,
+        ANV_TESTSUITE_REGISTER(tests_callbacks_success),
+        ANV_TESTSUITE_REGISTER(tests_callbacks_failure_msg),
+    ) {
+        .before_each = tests_callbacks_before_each,
+        .after_each = tests_callbacks_after_each,
+    };
+
+    int
+    main(void)
+    {
+        ANV_TESTSUITE_RUN(tests_callbacks, stdout);
+    }
+
 ------------------------------------------------------------------------------*/
 
 #ifndef ANV_TESTSUITE_2_H
@@ -145,6 +184,11 @@ typedef int (*anv_testsuite_setup_callback)(FILE *out_file);
 typedef int (*anv_testsuite_teardown_callback)(FILE *out_file);
 
 /**
+ * Callback function run before/after each test fixture.
+ */
+typedef void (*anv_testsuite_each_callback)(void);
+
+/**
  * Custom config for test suite.
  * @note This is not a runtime config but a static one set during the test
  *       suite declaration.
@@ -152,6 +196,8 @@ typedef int (*anv_testsuite_teardown_callback)(FILE *out_file);
 typedef struct anv_testsuite_config {
     anv_testsuite_setup_callback setup;
     anv_testsuite_teardown_callback teardown;
+    anv_testsuite_each_callback before_each;
+    anv_testsuite_each_callback after_each;
 } anv_testsuite_config;
 
 /**
@@ -185,7 +231,7 @@ typedef struct anv_testsuite_fixture {
  */
 #define ANV_TESTSUITE(suitename, ...)                                          \
     static const anv_testsuite_fixture suitename[] = { __VA_ARGS__ };          \
-    static const anv_testsuite_config suitename##_config = { NULL, NULL }
+    static const anv_testsuite_config suitename##_config = { 0 }
 
 /**
  * Define a test suite with a list of test fixtures to run scoped to current
@@ -253,9 +299,17 @@ anv_testsuite__run(
         // to get the line log.
         fflush(out_file);
 
+        if (config->before_each) {
+            config->before_each();
+        }
+
         // run test
         int result = 0;
         suite[i].fixture(&result, out_file);
+
+        if (config->after_each) {
+            config->after_each();
+        }
 
         if (result == 0) {
             fprintf(out_file, ANV_TESTSUITE__STR_GREEN("SUCCESS\n"));

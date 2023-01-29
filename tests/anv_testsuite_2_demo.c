@@ -66,37 +66,68 @@ ANV_TESTSUITE(
     ANV_TESTSUITE_REGISTER(tests_mixed_failure_msg),
 );
 
-ANV_TESTSUITE_FIXTURE(tests_config_success)
+ANV_TESTSUITE_FIXTURE(tests_setup_teardown_success)
 {
     expect(1);
 }
 
-ANV_TESTSUITE_FIXTURE(tests_config_success_msg)
+ANV_TESTSUITE_FIXTURE(tests_setup_teardown_failure_msg)
 {
     expect_msg(0, "This is a fail");
 }
 
 static int
-tests_config_setup(FILE *out_file)
+tests_setup_teardown_setup(FILE *out_file)
 {
     fprintf(out_file, "setup!\n");
     return 0;
 }
 
 static int
-tests_config_teardown(FILE *out_file)
+tests_setup_teardown_teardown(FILE *out_file)
 {
     fprintf(out_file, "teardown!\n");
     return 1;
 }
 
 ANV_TESTSUITE_WITH_CONFIG(
-    tests_config,
-    ANV_TESTSUITE_REGISTER(tests_config_success),
-    ANV_TESTSUITE_REGISTER(tests_config_success_msg),
+    tests_setup_teardown,
+    ANV_TESTSUITE_REGISTER(tests_setup_teardown_success),
+    ANV_TESTSUITE_REGISTER(tests_setup_teardown_failure_msg),
 ) {
-    .setup = tests_config_setup,
-    .teardown = tests_config_teardown,
+    .setup = tests_setup_teardown_setup,
+    .teardown = tests_setup_teardown_teardown,
+};
+
+ANV_TESTSUITE_FIXTURE(tests_callbacks_success)
+{
+    expect(1);
+}
+
+ANV_TESTSUITE_FIXTURE(tests_callbacks_failure_msg)
+{
+    expect_msg(0, "This is a fail");
+}
+
+static void
+tests_callbacks_before_each(void)
+{
+    printf("before_each!\n");
+}
+
+static void
+tests_callbacks_after_each(void)
+{
+    printf("after_each!\n");
+}
+
+ANV_TESTSUITE_WITH_CONFIG(
+    tests_callbacks,
+    ANV_TESTSUITE_REGISTER(tests_callbacks_success),
+    ANV_TESTSUITE_REGISTER(tests_callbacks_failure_msg),
+) {
+    .before_each = tests_callbacks_before_each,
+    .after_each = tests_callbacks_after_each,
 };
 
 int
@@ -107,6 +138,7 @@ main(void)
     ANV_TESTSUITE_RUN(tests_successful, stdout);
     ANV_TESTSUITE_RUN(tests_mixed, stdout);
 
-    // more elaborate test suites
-    ANV_TESTSUITE_RUN(tests_config, stdout);
+    // test suites with hooks
+    ANV_TESTSUITE_RUN(tests_setup_teardown, stdout);
+    ANV_TESTSUITE_RUN(tests_callbacks, stdout);
 }
