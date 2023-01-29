@@ -1,4 +1,5 @@
 tests/build
+examples/build
 
 .idea
 .vscode

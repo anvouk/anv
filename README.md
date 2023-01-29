@@ -27,6 +27,10 @@ Once this is done, simply include the header like any other wherever is needed.
 
 Old and deprecated stuff can be found under the `deprecated` folder.
 
+## More examples
+
+Additionale examples/demos can be found inside the `examples` folder.
+
 ## Run tests
 
 1. `cd tests`

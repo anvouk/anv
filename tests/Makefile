@@ -9,7 +9,6 @@ all-build:
 	mkdir -p $(OUTDIR)
 	$(CC) $(CFLAGS) anv_leaks.c -o $(OUTDIR)/anv_leaks.o
 	$(CC) $(CFLAGS) anv_metalloc.c -o $(OUTDIR)/anv_metalloc.o
-	$(CC) $(CFLAGS) anv_testsuite_2_demo.c -o $(OUTDIR)/anv_testsuite_2_demo.o
 
 all-run:
 	cd $(OUTDIR); for x in *.o; do ./$$x; done
