@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 // disable debug assertion to enable testing such cases.
-#define anv_meta__assert(x) (void)(x)
+#define anv_meta__assert(cond, errmsg) ((void)(cond))
 
 #define ANV_METALLOC_IMPLEMENTATION
 #include "../include/anv_metalloc.h"

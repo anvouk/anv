@@ -189,7 +189,7 @@ void *anv_meta_realloc(void *mem, size_t new_sz);
 
     #ifndef anv_meta__assert
         #include <assert.h>
-        #define anv_meta__assert(x) assert(x)
+        #define anv_meta__assert(cond, errmsg) assert((cond) && (errmsg))
     #endif
 
     #ifdef __GNUC__
@@ -220,7 +220,7 @@ anv_meta_size_t
 anv_meta_getsz(void *mem)
 {
     if (ANV_META__UNLIKELY(!anv_meta_isvalid(mem))) {
-        anv_meta__assert(0 && "not a valid metallocated object");
+        anv_meta__assert(0, "not a valid metallocated object");
         return 0;
     }
     return *(anv_meta_size_t *)((size_t)mem - METASZ_SZ - CHKB_SZ);
@@ -230,7 +230,7 @@ void *
 anv_meta_get(void *mem)
 {
     if (ANV_META__UNLIKELY(!anv_meta_isvalid(mem))) {
-        anv_meta__assert(0 && "not a valid metallocated object");
+        anv_meta__assert(0, "not a valid metallocated object");
         return NULL;
     }
     return (void *)((size_t)mem - anv_meta_getsz(mem) - METASZ_SZ - CHKB_SZ);
@@ -240,7 +240,7 @@ void
 anv_meta_set(void *mem, void *metadata)
 {
     if (ANV_META__UNLIKELY(!anv_meta_isvalid(mem))) {
-        anv_meta__assert(0 && "not a valid metallocated object");
+        anv_meta__assert(0, "not a valid metallocated object");
         return;
     }
 
@@ -254,7 +254,7 @@ size_t
 anv_meta_get_offset(void *mem)
 {
     if (ANV_META__UNLIKELY(!anv_meta_isvalid(mem))) {
-        anv_meta__assert(0 && "not a valid metallocated object");
+        anv_meta__assert(0, "not a valid metallocated object");
         return 0;
     }
     return (size_t)(anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ);
@@ -264,11 +264,11 @@ void *
 anv_meta_malloc(void *metadata, anv_meta_size_t meta_sz, size_t data_sz)
 {
     if (ANV_META__UNLIKELY(data_sz <= 0)) {
-        anv_meta__assert(0 && "trying to allocate 0 bytes is not supported");
+        anv_meta__assert(0, "trying to allocate 0 bytes is not supported");
         return NULL;
     }
     if (ANV_META__UNLIKELY(meta_sz <= 0)) {
-        anv_meta__assert(0 && "metadata allocation size cannot be 0");
+        anv_meta__assert(0, "metadata allocation size cannot be 0");
         return NULL;
     }
 
@@ -291,7 +291,7 @@ void
 anv_meta_free(void *mem)
 {
     if (ANV_META__UNLIKELY(!anv_meta_isvalid(mem))) {
-        anv_meta__assert(0 && "not a valid metallocated object");
+        anv_meta__assert(0, "not a valid metallocated object");
         return;
     }
     free((void *)((size_t)mem - (anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ)));
@@ -301,7 +301,7 @@ void *
 anv_meta_realloc(void *mem, size_t new_sz)
 {
     if (ANV_META__UNLIKELY(!anv_meta_isvalid(mem))) {
-        anv_meta__assert(0 && "not a valid metallocated object");
+        anv_meta__assert(0, "not a valid metallocated object");
         return NULL;
     }
 
