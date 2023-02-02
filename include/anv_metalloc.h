@@ -82,10 +82,14 @@
 
         // change metadata value
         metaval = 30;
-        anv_meta_set(int_arr, &metaval);
+        if (anv_meta_set(int_arr, &metaval) != ANV_META_RESULT_OK) {
+            fprintf(stderr, "failed setting metadata\n");
+            goto done;
+        }
 
         printf("metavalue is: %d\n", *(int *)anv_meta_get(int_arr));
 
+    done:
         anv_meta_free(int_arr); // very important!
     }
 
@@ -101,6 +105,21 @@
 #endif
 
 typedef ANV_METALLOC_METASIZE anv_meta_size_t;
+
+/**
+ * Metalloc status codes for operations.
+ */
+typedef enum anv_meta_result {
+    /**
+     * Operation succeeded.
+     */
+    ANV_META_RESULT_OK = 0,
+    /**
+     * Invalid params have been passed to method.
+     * @note With debug asserts enabled, these errors always trigger an assert.
+     */
+    ANV_META_RESULT_INVALID_PARAMS = 1,
+} anv_meta_result;
 
 #ifdef __cplusplus
 extern "C" {
@@ -132,8 +151,9 @@ void *anv_meta_get(void *mem);
  * @param mem Metallocated memory block.
  * @param metadata New metadata value. Must be of correct size specified at
  *        malloc time.
+ * @return Status code.
  */
-void anv_meta_set(void *mem, void *metadata);
+anv_meta_result anv_meta_set(void *mem, void *metadata);
 
 /**
  * Get offset between real memory allocated on heap and first data byte after
@@ -216,6 +236,12 @@ anv_meta_isvalid(void *mem)
     return *(chkb_t *)((size_t)mem - CHKB_SZ) == CHKB ? 1 : 0;
 }
 
+static anv_meta_size_t
+anv_meta__getsz(void *mem)
+{
+    return *(anv_meta_size_t *)((size_t)mem - METASZ_SZ - CHKB_SZ);
+}
+
 anv_meta_size_t
 anv_meta_getsz(void *mem)
 {
@@ -223,7 +249,7 @@ anv_meta_getsz(void *mem)
         anv_meta__assert(0, "not a valid metallocated object");
         return 0;
     }
-    return *(anv_meta_size_t *)((size_t)mem - METASZ_SZ - CHKB_SZ);
+    return anv_meta__getsz(mem);
 }
 
 void *
@@ -233,21 +259,38 @@ anv_meta_get(void *mem)
         anv_meta__assert(0, "not a valid metallocated object");
         return NULL;
     }
-    return (void *)((size_t)mem - anv_meta_getsz(mem) - METASZ_SZ - CHKB_SZ);
+    return (void *)((size_t)mem - anv_meta__getsz(mem) - METASZ_SZ - CHKB_SZ);
 }
 
-void
+static void
+anv_meta__set(void *full_mem, void *metadata, size_t meta_sz)
+{
+    if (metadata) {
+        memcpy(full_mem, metadata, meta_sz);
+    } else {
+        memset(full_mem, 0, meta_sz);
+    }
+}
+
+anv_meta_result
 anv_meta_set(void *mem, void *metadata)
 {
     if (ANV_META__UNLIKELY(!anv_meta_isvalid(mem))) {
         anv_meta__assert(0, "not a valid metallocated object");
-        return;
+        return ANV_META_RESULT_INVALID_PARAMS;
     }
 
-    anv_meta_size_t data_sz = anv_meta_getsz(mem);
-    memcpy(
-        (void *)((size_t)mem - data_sz - METASZ_SZ - CHKB_SZ), metadata, data_sz
-    );
+    anv_meta_size_t meta_sz = anv_meta__getsz(mem);
+    void *full_mem = (void *)((size_t)mem - meta_sz - METASZ_SZ - CHKB_SZ);
+
+    anv_meta__set(full_mem, metadata, meta_sz);
+    return ANV_META_RESULT_OK;
+}
+
+static size_t
+anv_meta_get__offset(void *mem)
+{
+    return (size_t)(anv_meta__getsz(mem) + METASZ_SZ + CHKB_SZ);
 }
 
 size_t
@@ -257,7 +300,7 @@ anv_meta_get_offset(void *mem)
         anv_meta__assert(0, "not a valid metallocated object");
         return 0;
     }
-    return (size_t)(anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ);
+    return anv_meta_get__offset(mem);
 }
 
 void *
@@ -276,11 +319,8 @@ anv_meta_malloc(void *metadata, anv_meta_size_t meta_sz, size_t data_sz)
     if (ANV_META__UNLIKELY(!full_mem)) {
         return NULL;
     }
-    if (metadata) {
-        memcpy(full_mem, metadata, meta_sz);
-    } else {
-        memset(full_mem, 0, meta_sz);
-    }
+
+    anv_meta__set(full_mem, metadata, meta_sz);
 
     *(anv_meta_size_t *)((size_t)full_mem + meta_sz) = meta_sz;
     *(chkb_t *)((size_t)full_mem + meta_sz + METASZ_SZ) = CHKB;
@@ -294,7 +334,7 @@ anv_meta_free(void *mem)
         anv_meta__assert(0, "not a valid metallocated object");
         return;
     }
-    free((void *)((size_t)mem - (anv_meta_getsz(mem) + METASZ_SZ + CHKB_SZ)));
+    free((void *)((size_t)mem - (anv_meta__getsz(mem) + METASZ_SZ + CHKB_SZ)));
 }
 
 void *
@@ -305,10 +345,10 @@ anv_meta_realloc(void *mem, size_t new_sz)
         return NULL;
     }
 
-    size_t padd = anv_meta_get_offset(mem);
+    size_t padd = anv_meta_get__offset(mem);
     void *full_mem = (void *)((size_t)mem - padd);
 
-    anv_meta_size_t meta_sz = anv_meta_getsz(mem);
+    anv_meta_size_t meta_sz = anv_meta__getsz(mem);
 
     void *reallocated_mem
         = realloc(full_mem, new_sz + meta_sz + METASZ_SZ + CHKB_SZ);
