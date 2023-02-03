@@ -34,8 +34,7 @@
   - minimal overhead during allocations
 
   drawbacks:
-  - allocation size is larger (default at least 5+ bytes)
-  - extra care must be taken for arrays of metallocated memory blocks
+  - allocation size is larger (default min is at least 5+ bytes)
 
   == brief overview ==
 
@@ -45,21 +44,18 @@
                      ^ptr points here
 
   where:
-  s = stores metadata size (s and c excluded. default max is 256)
+  s = stores metadata size (s and c excluded. default max is 256).
       retrieve with anv_meta_getsz()
-      see ANV_METALLOC_METASIZE)
-  c = check byte (default is 4 bytes)
+      see ANV_METALLOC_METASIZE).
+  c = check byte (default is 4 bytes).
       used to check metallocation validity (see anv_meta_isvalid())
-      see CHKB
+      see CHKB.
 
   to sum it up the default total allocation size is:
     metadata size + metadata size num size + check byte size + memory allocated
   which translates to:
     metadata size + METASZ_SZ + CHKB_SZ + memory allocated   bytes
     ...           + 1         + 4       + ...                bytes
-
-  TODO:
-  - add example of arrays of metallocated objects.
 
   simple example:
 
