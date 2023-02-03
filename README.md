@@ -14,11 +14,12 @@ Once this is done, simply include the header like any other wherever is needed.
 
 ## Libs list
 
-|      Headers      |  OS   | Description                                                   |
-|:-----------------:|:-----:|---------------------------------------------------------------|
-|    anv_hhoh.h     |  Win  | File handles handler (thxs to windows...)                     |
-| anv_testsuite_2.h | Cross | Simple, self-contained unit test library                      |
-|  anv_metalloc.h   | Cross | Store metadata for allocated memory blocks                    |
+|      Headers      |  OS   | Description                                |
+|:-----------------:|:-----:|--------------------------------------------|
+|    anv_hhoh.h     |  Win  | File handles handler (thxs to windows...)  |
+| anv_testsuite_2.h | Cross | Simple, self-contained unit test library   |
+|  anv_metalloc.h   | Cross | Store metadata for allocated memory blocks |
+|     anv_arr.h     | Cross | Dynamic general purpose heap array in C    |
 
 ## Deprecated libs
 
