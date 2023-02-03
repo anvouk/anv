@@ -26,68 +26,87 @@
     anv_metalloc (https://github.com/anvouk/anv)
 --------------------------------------------------------------------------------
 
-  store 'hidden' metadata for allocated memory right next to it.
+# anv_metalloc
 
-  advantages:
-  - 'hide' memory block related info (e.g. its size, etc.)
-  - 1 allocation per memory block + its metadatas
-  - minimal overhead during allocations
+Store 'hidden' metadata for allocated memory right next to it.
 
-  drawbacks:
-  - allocation size is larger (default min is at least 5+ bytes)
+Advantages:
+- 'hide' memory block related info (e.g. its size, etc.)
+- 1 allocation per memory block + its metadatas
+- minimal overhead during allocations
 
-  == brief overview ==
+Drawbacks:
+- allocation size is larger (default min is at least 5+ bytes)
 
-  allocated memory block looks like this:
+```
+== brief overview ==
 
-  |-----metadata---sc|-------------------data------------------|   ... ->
-                     ^ptr points here
+allocated memory block looks like this:
 
-  where:
-  s = stores metadata size (s and c excluded. default max is 256).
-      retrieve with anv_meta_getsz()
-      see ANV_METALLOC_METASIZE).
-  c = check byte (default is 4 bytes).
-      used to check metallocation validity (see anv_meta_isvalid())
-      see CHKB.
+|-----metadata---sc|-------------------data------------------|   ... ->
+                 ^ptr points here
 
-  to sum it up the default total allocation size is:
-    metadata size + metadata size num size + check byte size + memory allocated
-  which translates to:
-    metadata size + METASZ_SZ + CHKB_SZ + memory allocated   bytes
-    ...           + 1         + 4       + ...                bytes
+where:
+s = stores metadata size (s and c excluded. default max is 256).
+  retrieve with anv_meta_getsz()
+  see ANV_METALLOC_METASIZE).
+c = check byte (default is 4 bytes).
+  used to check metallocation validity (see anv_meta_isvalid())
+  see CHKB.
 
-  simple example:
+to sum it up the default total allocation size is:
+metadata size + metadata size num size + check byte size + memory allocated
+which translates to:
+metadata size + METASZ_SZ + CHKB_SZ + memory allocated   bytes
+...           + 1         + 4       + ...                bytes
+```
 
-    #define ANV_METALLOC_IMPLEMENTATION
-    #include "anv_metalloc.h"
+## Dependencies
 
-    int main(void)
-    {
-        int metaval = 20;
-        int *int_arr = anv_meta_malloc(
-            &metaval,
-            sizeof(metaval),
-            sizeof(int) * 10
-        );
+None
 
-        // int_arr works like any other dynamic array
+## Include usage
 
-        // retrieve metadata
-        printf("metavalue is: %d\n", *(int *)anv_meta_get(int_arr));
+```c
+#define ANV_METALLOC_IMPLEMENTATION
+#include "anv_metalloc.h"
+```
 
-        // change metadata value
-        metaval = 30;
-        if (anv_meta_set(int_arr, &metaval) != ANV_META_RESULT_OK) {
-            fprintf(stderr, "failed setting metadata\n");
-            goto done;
-        }
+## Examples
 
-        printf("metavalue is: %d\n", *(int *)anv_meta_get(int_arr));
+### Simple example
 
-    done:
-        anv_meta_free(int_arr); // very important!
+```c
+#define ANV_METALLOC_IMPLEMENTATION
+#include "anv_metalloc.h"
+
+int main(void)
+{
+    int metaval = 20;
+    int *int_arr = anv_meta_malloc(
+        &metaval,
+        sizeof(metaval),
+        sizeof(int) * 10
+    );
+
+    // int_arr works like any other dynamic array
+
+    // retrieve metadata
+    printf("metavalue is: %d\n", *(int *)anv_meta_get(int_arr));
+
+    // change metadata value
+    metaval = 30;
+    if (anv_meta_set(int_arr, &metaval) != ANV_META_RESULT_OK) {
+        fprintf(stderr, "failed setting metadata\n");
+        goto done;
     }
+
+    printf("metavalue is: %d\n", *(int *)anv_meta_get(int_arr));
+
+done:
+    anv_meta_free(int_arr); // very important!
+}
+```
 
 ------------------------------------------------------------------------------*/
 

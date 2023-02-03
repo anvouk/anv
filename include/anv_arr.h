@@ -38,7 +38,7 @@ automatically trigger an array expansion to accomodate the new item.
 
 ## Dependencies
 
-- anv_meta.h
+- anv_metalloc.h
 
 ## Include usage
 

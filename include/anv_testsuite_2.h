@@ -26,153 +26,175 @@
     anv_testsuite_2 (https://github.com/anvouk/anv)
 --------------------------------------------------------------------------------
 
-  extremely simple C unit test framework.
+# anv_testsuite_2
 
-  main goals:
-  - small and compact
-  - portable
-  - ease of use
-  - fast
-  - minimal features
-  - optional colors
+Extremely simple C unit testing framework.
 
-  about crashes handling:
+Main goals:
+- small and compact
+- portable
+- ease of use
+- fast
+- minimal features
+- optional colors
 
-    This library optionally supports a best-effort crash detection logging and
-    graceful shutdown (see anv_testsuite_catch_crashes example).
+## Dependencies
 
-    Since the lib's goal is simplicity and portability, we do not go
-    the extra mile to get stack traces or other fancy info because they are very
-    much OS-specific.
+None
 
-    The current implementation involves basic C signal() callbacks and logs to
-    stderr.
+## Include usage
 
-  simple example:
+```c
+#include "anv_testsuite_2.h"
+```
 
-    #include "anv_testsuite_2.h"
+## About crashes handling:
 
-    ANV_TESTSUITE_FIXTURE(demo_success)
-    {
-        expect(1);
+This library optionally supports a best-effort crash detection logging and
+graceful shutdown (see anv_testsuite_catch_crashes example).
+
+Since the lib's goal is simplicity and portability, we do not go
+the extra mile to get stack traces or other fancy info because they are very
+much OS-specific.
+
+The current implementation involves basic C signal() callbacks and logs to
+stderr.
+
+## Examples
+
+### Simple example
+
+```c
+#include "anv_testsuite_2.h"
+
+ANV_TESTSUITE_FIXTURE(demo_success)
+{
+    expect(1);
+}
+
+ANV_TESTSUITE_FIXTURE(demo_failure_with_msg)
+{
+    expect_msg(1 == 0, "Ooops");
+}
+
+ANV_TESTSUITE(
+    my_testsuite,
+    ANV_TESTSUITE_REGISTER(demo_success),
+    ANV_TESTSUITE_REGISTER(demo_failure_with_msg),
+);
+
+int
+main(void)
+{
+    ANV_TESTSUITE_RUN(my_testsuite, stdout);
+}
+```
+
+### Example with setup/teardown
+
+```c
+ANV_TESTSUITE_FIXTURE(tests_config_success)
+{
+    expect(1);
+}
+
+static int
+tests_config_setup(FILE *out_file)
+{
+    fprintf(out_file, "setup!\n");
+    return 0;
+}
+
+static int
+tests_config_teardown(FILE *out_file)
+{
+    fprintf(out_file, "teardown!\n");
+    return 1; // signal teardown failed
+}
+
+ANV_TESTSUITE_WITH_CONFIG(
+    tests_config,
+    ANV_TESTSUITE_REGISTER(tests_config_success),
+) {
+    .setup = tests_config_setup,
+    .teardown = tests_config_teardown,
+};
+
+int
+main(void)
+{
+    ANV_TESTSUITE_RUN(tests_config, stdout);
+}
+```
+
+### Example with before/after each callbacks
+
+```c
+ANV_TESTSUITE_FIXTURE(tests_callbacks_success)
+{
+    expect(1);
+}
+
+ANV_TESTSUITE_FIXTURE(tests_callbacks_failure_msg)
+{
+    expect_msg(0, "This is a fail");
+}
+
+static void
+tests_callbacks_before_each(void)
+{
+    printf("before_each!\n");
+}
+
+static void
+tests_callbacks_after_each(void)
+{
+    printf("after_each!\n");
+}
+
+ANV_TESTSUITE_WITH_CONFIG(
+    tests_callbacks,
+    ANV_TESTSUITE_REGISTER(tests_callbacks_success),
+    ANV_TESTSUITE_REGISTER(tests_callbacks_failure_msg),
+) {
+    .before_each = tests_callbacks_before_each,
+    .after_each = tests_callbacks_after_each,
+};
+
+int
+main(void)
+{
+    ANV_TESTSUITE_RUN(tests_callbacks, stdout);
+}
+```
+
+### Example with basic crash handling
+
+```c
+ANV_TESTSUITE_FIXTURE(tests_crash_invalid_division)
+{
+    int b = 0;
+    if (1) {
+        int c = 10 / b;
+        (void)c;
     }
+    expect(1);
+}
 
-    ANV_TESTSUITE_FIXTURE(demo_failure_with_msg)
-    {
-        expect_msg(1 == 0, "Ooops");
-    }
+ANV_TESTSUITE(
+    tests_crash,
+    ANV_TESTSUITE_REGISTER(tests_crash_invalid_division),
+);
 
-    ANV_TESTSUITE(
-        my_testsuite,
-        ANV_TESTSUITE_REGISTER(demo_success),
-        ANV_TESTSUITE_REGISTER(demo_failure_with_msg),
-    );
+int
+main(void)
+{
+    // enable listeners for abnormal errors
+    anv_testsuite_catch_crashes();
 
-    int
-    main(void)
-    {
-        ANV_TESTSUITE_RUN(my_testsuite, stdout);
-    }
-
-  example with setup/teardown:
-
-    ANV_TESTSUITE_FIXTURE(tests_config_success)
-    {
-        expect(1);
-    }
-
-    static int
-    tests_config_setup(FILE *out_file)
-    {
-        fprintf(out_file, "setup!\n");
-        return 0;
-    }
-
-    static int
-    tests_config_teardown(FILE *out_file)
-    {
-        fprintf(out_file, "teardown!\n");
-        return 1; // signal teardown failed
-    }
-
-    ANV_TESTSUITE_WITH_CONFIG(
-        tests_config,
-        ANV_TESTSUITE_REGISTER(tests_config_success),
-    ) {
-        .setup = tests_config_setup,
-        .teardown = tests_config_teardown,
-    };
-
-    int
-    main(void)
-    {
-        ANV_TESTSUITE_RUN(tests_config, stdout);
-    }
-
-  example with before/after each callbacks:
-
-    ANV_TESTSUITE_FIXTURE(tests_callbacks_success)
-    {
-        expect(1);
-    }
-
-    ANV_TESTSUITE_FIXTURE(tests_callbacks_failure_msg)
-    {
-        expect_msg(0, "This is a fail");
-    }
-
-    static void
-    tests_callbacks_before_each(void)
-    {
-        printf("before_each!\n");
-    }
-
-    static void
-    tests_callbacks_after_each(void)
-    {
-        printf("after_each!\n");
-    }
-
-    ANV_TESTSUITE_WITH_CONFIG(
-        tests_callbacks,
-        ANV_TESTSUITE_REGISTER(tests_callbacks_success),
-        ANV_TESTSUITE_REGISTER(tests_callbacks_failure_msg),
-    ) {
-        .before_each = tests_callbacks_before_each,
-        .after_each = tests_callbacks_after_each,
-    };
-
-    int
-    main(void)
-    {
-        ANV_TESTSUITE_RUN(tests_callbacks, stdout);
-    }
-
-  example with basic crash handling:
-
-    ANV_TESTSUITE_FIXTURE(tests_crash_invalid_division)
-    {
-        int b = 0;
-        if (1) {
-            int c = 10 / b;
-            (void)c;
-        }
-        expect(1);
-    }
-
-    ANV_TESTSUITE(
-        tests_crash,
-        ANV_TESTSUITE_REGISTER(tests_crash_invalid_division),
-    );
-
-    int
-    main(void)
-    {
-        // enable listeners for abnormal errors
-        anv_testsuite_catch_crashes();
-
-        ANV_TESTSUITE_RUN(tests_crash, stdout);
-    }
+    ANV_TESTSUITE_RUN(tests_crash, stdout);
+}
+```
 
 ------------------------------------------------------------------------------*/
 
@@ -346,7 +368,7 @@ anv_testsuite__handle_crash(int sig)
  * Catches potential crashes, logs what happened and gracefully exits.
  * @note There is portable standard way to determine where the crash happened
  *       and what caused it.
- * @todo Is it worth it to implementing OS specific stack trace logging?
+ * @todo Is it worth it to implement OS specific stack trace logging?
  *       See https://gist.github.com/jvranish/4441299 for a possible example.
  *       Even so, there would be not support for envs like Cygwin and MinGW. Is
  *       the additional complexity and maintenance burden worth having a stack
