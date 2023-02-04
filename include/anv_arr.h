@@ -28,13 +28,28 @@
 
 # anv_arr
 
-C general purpose dynamic arrays allocated on heap.
+C general purpose dynamic and memory contiguous arrays.
 
-An array self-contains within a single alloc all its elements + extra metadata
+An array self-contains within a single alloc all its elements + extra info
 (like size, capacity, etc).
 
 Once the array's reaches max initial capacity, the next item's insert will
 automatically trigger an array expansion to accomodate the new item.
+
+All array's items are fully stored inside the array as a contiguous block of
+memory using memcpy/memset.
+
+Trying to insert a NULL item in the array, will memset to zero its location.
+As of now at least, there is no way to distinguish between an empty struct and a
+NULL item zeroed into the array. For this reason, try to avoid relying on NULL
+elements and prefer simply deleting them instead.
+
+Assertion errors are used for invalid parameters during development and get
+treated as proper return value in prod. Since most methods do not return a
+status code, there is no way to determine a prod "invalid param error" from
+another type of runtime error. The correct way to address this is to ensure
+no asserts are triggered during development (meaning no invalid parameters are
+passed to methods).
 
 ## Dependencies
 
@@ -97,10 +112,8 @@ main(void)
 
 /*
 TODO: anv_arr missing methods list
-- insert (replaces existing entry at index)
 - delete (moves entry to last and decrement elements count)
 - delete_slow (delete entry at index and traslate all after to keep order)
-- pop (return and remove last entry)
 - pop_first_slow (return and remove first entry, always uses delete_slow)
 - push_first (add to head and move existing at spot to last)
 - push_first_slow (add to head and traslate all to keep order)
@@ -109,6 +122,10 @@ TODO: anv_arr missing methods list
 */
 
 #include <stddef.h> /* for size_t */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Array status codes for operations.
@@ -127,6 +144,10 @@ typedef enum anv_arr_result {
      * Memory allocation related error.
      */
     ANV_ARR_RESULT_ALLOC_ERROR = 2,
+    /**
+     * Array index is >= the array's current length.
+     */
+    ANV_ARR_RESULT_INDEX_OUT_OF_BOUNDS = 10,
 } anv_arr_result;
 
 /**
@@ -151,10 +172,6 @@ typedef void *anv_arr_t;
  * @return The new array's max capacity, which must be > old_capacity.
  */
 typedef size_t (*anv_arr_reallocator_fn)(size_t old_capacity);
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * Set custom reallocator callback called to determine the new array's capacity
@@ -185,10 +202,29 @@ void anv_arr_destroy(anv_arr_t arr);
  */
 size_t anv_arr_length(anv_arr_t arr);
 
-anv_arr_result anv_arr__push(anv_arr_t *arr, void *item);
+anv_arr_result anv_arr__insert(anv_arr_t *refarr, size_t index, void *item);
+
+/**
+ * Insert item at index and move old item at the end of the array.
+ * @param item Object to insert, can be NULL but it's not recommended.
+ * @return Status code.
+ */
+#define anv_arr_insert(arr, index, item)                                       \
+    anv_arr__insert((void *)&(arr), index, item)
+
+/**
+ * Syntactic sugar for inserting a new-struct like object inside the array.
+ * Works same as anv_arr_insert.
+ * @return Status code.
+ */
+#define anv_arr_insert_new(arr, index, type, fields)                           \
+    anv_arr_insert(arr, index, &(type)fields)
+
+anv_arr_result anv_arr__push(anv_arr_t *refarr, void *item);
 
 /**
  * Push a new item to the end of the array.
+ * @param item Object to insert, can be NULL but it's not recommended.
  * @return Status code.
  */
 #define anv_arr_push(arr, item) anv_arr__push((void *)&(arr), item)
@@ -213,6 +249,14 @@ anv_arr_result anv_arr__push(anv_arr_t *arr, void *item);
  * @return Status code.
  */
 #define anv_arr_push_new(arr, type, fields) anv_arr_push(arr, &(type)fields)
+
+void *anv_arr__pop(anv_arr_t arr);
+
+/**
+ * Get and remove last item from array.
+ * @return NULL, if the array is empty.
+ */
+#define anv_arr_pop(arr, type) ((type *)anv_arr__pop(arr))
 
 void *anv_arr__get(anv_arr_t arr, size_t index);
 
@@ -316,39 +360,120 @@ anv_arr_length(anv_arr_t arr)
     return metadata->arr_sz;
 }
 
-anv_arr_result
-anv_arr__push(anv_arr_t *arr, void *item)
+static void *
+anv_arr__get_internal(anv_arr_t arr, size_t index, anv_arr__metadata *metadata)
 {
-    if (ANV_ARR__UNLIKELY(!arr || !*arr)) {
-        anv_arr__assert(0, "invalid null array");
-        return ANV_ARR_RESULT_INVALID_PARAMS;
+    if (index >= metadata->arr_sz) {
+        return NULL;
     }
-    if (ANV_ARR__UNLIKELY(!item)) {
-        anv_arr__assert(0, "invalid null item to insert");
-        return ANV_ARR_RESULT_INVALID_PARAMS;
-    }
+    return (void *)((size_t)arr + metadata->item_sz * index);
+}
 
-    anv_arr__metadata *metadata = (anv_arr__metadata *)anv_meta_get(*arr);
-    if (ANV_ARR__UNLIKELY(!metadata)) {
-        anv_arr__assert(0, "cannot find metadata, is arr a valid meta obj?");
-        return ANV_ARR_RESULT_INVALID_PARAMS;
+static void
+anv_arr__set_internal(
+    anv_arr_t arr, size_t index, anv_arr__metadata *metadata, void *item
+)
+{
+    void *spot = (void *)((size_t)arr + metadata->item_sz * index);
+    if (item) {
+        memcpy(spot, item, metadata->item_sz);
+    } else {
+        memset(spot, 0, metadata->item_sz);
     }
+}
 
+static anv_arr_result
+anv_arr__push_internal(
+    anv_arr_t *refarr, anv_arr__metadata *metadata, void *item
+)
+{
     if (metadata->arr_sz >= metadata->arr_capacity) {
         size_t new_capacity = anv_arr__reallocator(metadata->arr_capacity);
         void *resized_arr
-            = anv_meta_realloc(*arr, metadata->item_sz * new_capacity);
+            = anv_meta_realloc(*refarr, metadata->item_sz * new_capacity);
         if (ANV_ARR__UNLIKELY(!resized_arr)) {
             return ANV_ARR_RESULT_ALLOC_ERROR;
         }
         metadata->arr_capacity = new_capacity;
-        *arr = resized_arr;
+        *refarr = resized_arr;
     }
 
-    void *spot
-        = (void *)((size_t)*arr + metadata->item_sz * metadata->arr_sz++);
-    memcpy(spot, item, metadata->item_sz);
+    anv_arr__set_internal(*refarr, metadata->arr_sz++, metadata, item);
     return ANV_ARR_RESULT_OK;
+}
+
+anv_arr_result
+anv_arr__insert(anv_arr_t *refarr, size_t index, void *item)
+{
+    if (ANV_ARR__UNLIKELY(!refarr || !*refarr)) {
+        anv_arr__assert(0, "invalid null array");
+        return ANV_ARR_RESULT_INVALID_PARAMS;
+    }
+
+    anv_arr__metadata *metadata = (anv_arr__metadata *)anv_meta_get(*refarr);
+    if (ANV_ARR__UNLIKELY(!metadata)) {
+        anv_arr__assert(0, "cannot find metadata, is refarr a valid meta obj?");
+        return ANV_ARR_RESULT_INVALID_PARAMS;
+    }
+
+    // Inserting at index 0 for empty arrays is a supported special case.
+    if (index != 0 && index >= metadata->arr_sz) {
+        return ANV_ARR_RESULT_INDEX_OUT_OF_BOUNDS;
+    }
+
+    // Empty array have no existing item to move.
+    if (metadata->arr_sz == 0) {
+        return anv_arr__push_internal(refarr, metadata, item);
+    } else {
+        // Here it's import that we push the new item to last before
+        // updating the current item. This ensure the old item value is memcpyed
+        // to the new location.
+        void *old_item = anv_arr__get_internal(*refarr, index, metadata);
+        anv_arr_result res = anv_arr__push_internal(refarr, metadata, old_item);
+        if (res == ANV_ARR_RESULT_OK) {
+            anv_arr__set_internal(*refarr, index, metadata, item);
+        }
+        return res;
+    }
+}
+
+anv_arr_result
+anv_arr__push(anv_arr_t *refarr, void *item)
+{
+    if (ANV_ARR__UNLIKELY(!refarr || !*refarr)) {
+        anv_arr__assert(0, "invalid null array");
+        return ANV_ARR_RESULT_INVALID_PARAMS;
+    }
+
+    anv_arr__metadata *metadata = (anv_arr__metadata *)anv_meta_get(*refarr);
+    if (ANV_ARR__UNLIKELY(!metadata)) {
+        anv_arr__assert(0, "cannot find metadata, is refarr a valid meta obj?");
+        return ANV_ARR_RESULT_INVALID_PARAMS;
+    }
+
+    return anv_arr__push_internal(refarr, metadata, item);
+}
+
+void *
+anv_arr__pop(anv_arr_t arr)
+{
+    if (ANV_ARR__UNLIKELY(!arr)) {
+        anv_arr__assert(0, "invalid null array");
+        return NULL;
+    }
+
+    anv_arr__metadata *metadata = (anv_arr__metadata *)anv_meta_get(arr);
+    if (ANV_ARR__UNLIKELY(!metadata)) {
+        anv_arr__assert(0, "cannot find metadata, is arr a valid meta obj?");
+        return NULL;
+    }
+
+    if (metadata->arr_sz == 0) {
+        return NULL;
+    }
+    void *item = anv_arr__get_internal(arr, metadata->arr_sz - 1, metadata);
+    metadata->arr_sz--;
+    return item;
 }
 
 void *
@@ -365,10 +490,7 @@ anv_arr__get(anv_arr_t arr, size_t index)
         return NULL;
     }
 
-    if (index >= metadata->arr_sz) {
-        return NULL;
-    }
-    return (void *)((size_t)arr + metadata->item_sz * index);
+    return anv_arr__get_internal(arr, index, metadata);
 }
 
 #endif /* ANV_ARR_IMPLEMENTATION */

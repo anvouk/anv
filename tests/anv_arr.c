@@ -71,6 +71,140 @@ ANV_TESTSUITE_FIXTURE(anv_arr_length_with_n_elements_returns_n)
     anv_arr_destroy(arr);
 }
 
+ANV_TESTSUITE_FIXTURE(anv_arr_insert_with_null_arr_is_param_error)
+{
+    anv_arr_t *ptr = NULL;
+
+    item_t item = { .a = 100 };
+    expect(anv_arr_insert(ptr, 0, &item) == ANV_ARR_RESULT_INVALID_PARAMS);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_insert_with_null_item_is_ok)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    expect(anv_arr_insert(arr, 0, NULL) == ANV_ARR_RESULT_OK);
+    item_t *found_item_0 = anv_arr_get(arr, item_t, 0);
+    expect(found_item_0);
+    expect(found_item_0->a == 0);
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_insert_with_out_of_bounds_index_is_error)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    item_t item1 = { .a = 100 };
+    expect(anv_arr_push(arr, &item1) == ANV_ARR_RESULT_OK);
+    item_t item2 = { .a = 200 };
+    expect(anv_arr_push(arr, &item2) == ANV_ARR_RESULT_OK);
+
+    item_t item3 = { .a = 300 };
+    expect(
+        anv_arr_insert(arr, 2, &item3) == ANV_ARR_RESULT_INDEX_OUT_OF_BOUNDS
+    );
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_insert_with_empty_array_is_ok)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    item_t item = { .a = 100 };
+    expect(anv_arr_insert(arr, 0, &item) == ANV_ARR_RESULT_OK);
+
+    expect(anv_arr_length(arr) == 1);
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_insert_with_not_empty_array_is_ok)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    item_t item1 = { .a = 100 };
+    expect(anv_arr_push(arr, &item1) == ANV_ARR_RESULT_OK);
+    item_t item2 = { .a = 200 };
+    expect(anv_arr_push(arr, &item2) == ANV_ARR_RESULT_OK);
+
+    expect(anv_arr_length(arr) == 2);
+    item_t item3 = { .a = 300 };
+    expect(anv_arr_insert(arr, 1, &item3) == ANV_ARR_RESULT_OK);
+
+    expect(anv_arr_length(arr) == 3);
+    item_t *found_item_new = anv_arr_get(arr, item_t, 1);
+    expect(found_item_new);
+    expect(found_item_new->a == 300);
+    item_t *found_item_moved = anv_arr_get(arr, item_t, 2);
+    expect(found_item_moved);
+    expect(found_item_moved->a == 200);
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_insert_multiple_check_ordering_ok)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    item_t item1 = { .a = 100 };
+    expect(anv_arr_insert(arr, 0, &item1) == ANV_ARR_RESULT_OK);
+    item_t item2 = { .a = 200 };
+    expect(anv_arr_insert(arr, 0, &item2) == ANV_ARR_RESULT_OK);
+    item_t item3 = { .a = 300 };
+    expect(anv_arr_insert(arr, 0, &item3) == ANV_ARR_RESULT_OK);
+
+    expect(anv_arr_length(arr) == 3);
+    item_t *found_item_0 = anv_arr_get(arr, item_t, 0);
+    expect(found_item_0);
+    expect(found_item_0->a == 300);
+    item_t *found_item_1 = anv_arr_get(arr, item_t, 1);
+    expect(found_item_1);
+    expect(found_item_1->a == 100);
+    item_t *found_item_2 = anv_arr_get(arr, item_t, 2);
+    expect(found_item_2);
+    expect(found_item_2->a == 200);
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_insert_with_array_expansion_ok)
+{
+    anv_arr_t arr = anv_arr_new(1, sizeof(item_t));
+    expect(arr);
+
+    item_t item1 = { .a = 100 };
+    expect(anv_arr_insert(arr, 0, &item1) == ANV_ARR_RESULT_OK);
+    item_t item2 = { .a = 200 };
+    expect(anv_arr_insert(arr, 0, &item2) == ANV_ARR_RESULT_OK);
+    item_t item3 = { .a = 300 };
+    expect(anv_arr_insert(arr, 0, &item3) == ANV_ARR_RESULT_OK);
+
+    expect(anv_arr_length(arr) == 3);
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_insert_new_ok)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    expect(
+        anv_arr_insert_new(arr, 0, item_t, { .a = 100 }) == ANV_ARR_RESULT_OK
+    );
+
+    expect(anv_arr_length(arr) == 1);
+
+    anv_arr_destroy(arr);
+}
+
 ANV_TESTSUITE_FIXTURE(anv_arr_push_with_1_element_under_capacity_is_ok)
 {
     anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
@@ -90,12 +224,15 @@ ANV_TESTSUITE_FIXTURE(anv_arr_push_with_null_arr_is_param_error)
     expect(anv_arr_push(ptr, &item) == ANV_ARR_RESULT_INVALID_PARAMS);
 }
 
-ANV_TESTSUITE_FIXTURE(anv_arr_push_with_null_item_is_param_error)
+ANV_TESTSUITE_FIXTURE(anv_arr_push_with_null_item_is_ok)
 {
     anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
     expect(arr);
 
-    expect(anv_arr_push(arr, NULL) == ANV_ARR_RESULT_INVALID_PARAMS);
+    expect(anv_arr_push(arr, NULL) == ANV_ARR_RESULT_OK);
+    item_t *found_item_0 = anv_arr_get(arr, item_t, 0);
+    expect(found_item_0);
+    expect(found_item_0->a == 0);
 
     anv_arr_destroy(arr);
 }
@@ -138,6 +275,44 @@ ANV_TESTSUITE_FIXTURE(anv_arr_push_new_with_new_struct_is_ok)
     expect(anv_arr_push_new(arr, item_t, { .a = 30 }) == ANV_ARR_RESULT_OK);
 
     expect(anv_arr_length(arr) == 3);
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_pop_when_null_array_return_null)
+{
+    expect(anv_arr_pop(NULL, item_t) == NULL);
+    expect(1);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_pop_when_empty_array_return_null)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    expect(!anv_arr_pop(arr, item_t));
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_pop_ok)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    expect(anv_arr_push_new(arr, item_t, { .a = 10 }) == ANV_ARR_RESULT_OK);
+    expect(anv_arr_push_new(arr, item_t, { .a = 20 }) == ANV_ARR_RESULT_OK);
+    expect(anv_arr_length(arr) == 2);
+
+    item_t *found_item_1 = anv_arr_pop(arr, item_t);
+    expect(found_item_1);
+    expect(found_item_1->a == 20);
+    expect(anv_arr_length(arr) == 1);
+
+    item_t *found_item_2 = anv_arr_pop(arr, item_t);
+    expect(found_item_2);
+    expect(found_item_2->a == 10);
+    expect(anv_arr_length(arr) == 0);
 
     anv_arr_destroy(arr);
 }
@@ -278,11 +453,22 @@ ANV_TESTSUITE(
     ANV_TESTSUITE_REGISTER(anv_arr_length_with_0_elements_returns_0),
     ANV_TESTSUITE_REGISTER(anv_arr_length_with_n_elements_returns_n),
     ANV_TESTSUITE_REGISTER(anv_arr_push_with_1_element_under_capacity_is_ok),
+    ANV_TESTSUITE_REGISTER(anv_arr_insert_with_null_arr_is_param_error),
+    ANV_TESTSUITE_REGISTER(anv_arr_insert_with_null_item_is_ok),
+    ANV_TESTSUITE_REGISTER(anv_arr_insert_with_out_of_bounds_index_is_error),
+    ANV_TESTSUITE_REGISTER(anv_arr_insert_with_empty_array_is_ok),
+    ANV_TESTSUITE_REGISTER(anv_arr_insert_with_not_empty_array_is_ok),
+    ANV_TESTSUITE_REGISTER(anv_arr_insert_multiple_check_ordering_ok),
+    ANV_TESTSUITE_REGISTER(anv_arr_insert_with_array_expansion_ok),
+    ANV_TESTSUITE_REGISTER(anv_arr_insert_new_ok),
     ANV_TESTSUITE_REGISTER(anv_arr_push_with_null_arr_is_param_error),
-    ANV_TESTSUITE_REGISTER(anv_arr_push_with_null_item_is_param_error),
+    ANV_TESTSUITE_REGISTER(anv_arr_push_with_null_item_is_ok),
     ANV_TESTSUITE_REGISTER(anv_arr_push_with_invalid_arr_is_param_error),
     ANV_TESTSUITE_REGISTER(anv_arr_push_with_arr_low_capacity_is_extended),
     ANV_TESTSUITE_REGISTER(anv_arr_push_new_with_new_struct_is_ok),
+    ANV_TESTSUITE_REGISTER(anv_arr_pop_when_null_array_return_null),
+    ANV_TESTSUITE_REGISTER(anv_arr_pop_when_empty_array_return_null),
+    ANV_TESTSUITE_REGISTER(anv_arr_pop_ok),
     ANV_TESTSUITE_REGISTER(anv_arr_config_reallocator_fn_custom_ok),
     ANV_TESTSUITE_REGISTER(anv_arr_config_reallocator_fn_restore_default_ok),
     ANV_TESTSUITE_REGISTER(anv_arr_get_with_no_elements_returns_null),
