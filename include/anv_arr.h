@@ -283,6 +283,13 @@ void *anv_arr__get(anv_arr_t arr, size_t index);
 #define anv_arr_get(arr, type, index) ((type *)anv_arr__get(arr, index))
 
 /**
+ * Swap the 2 items found at the 2 passed indexes.
+ * This method performs no allocations during the swap.
+ * @return Status code.
+ */
+anv_arr_result anv_arr_swap(anv_arr_t arr, size_t index_a, size_t index_b);
+
+/**
  * Delete an item from the array at the specified index.
  * This method does not guarantee items order.
  * This method performs no allocations during the swap.
@@ -543,6 +550,31 @@ anv_arr__swap_internal(
     memcpy(tmp_item, from_item, metadata->item_sz);
     memcpy(from_item, to_item, metadata->item_sz);
     memcpy(to_item, tmp_item, metadata->item_sz);
+}
+
+anv_arr_result
+anv_arr_swap(anv_arr_t arr, size_t index_a, size_t index_b)
+{
+    if (ANV_ARR__UNLIKELY(!arr)) {
+        anv_arr__assert(0, "invalid null array");
+        return ANV_ARR_RESULT_INVALID_PARAMS;
+    }
+
+    anv_arr__metadata *metadata = (anv_arr__metadata *)anv_meta_get(arr);
+    if (ANV_ARR__UNLIKELY(!metadata)) {
+        anv_arr__assert(0, "cannot find metadata, is arr a valid meta obj?");
+        return ANV_ARR_RESULT_INVALID_PARAMS;
+    }
+
+    if (index_a == index_b) {
+        return ANV_ARR_RESULT_INDEX_COLLISION;
+    }
+    if (index_a >= metadata->arr_sz || index_b >= metadata->arr_sz) {
+        return ANV_ARR_RESULT_INDEX_OUT_OF_BOUNDS;
+    }
+
+    anv_arr__swap_internal(arr, metadata, index_a, index_b);
+    return ANV_ARR_RESULT_OK;
 }
 
 anv_arr_result

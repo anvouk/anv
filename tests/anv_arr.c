@@ -464,6 +464,75 @@ ANV_TESTSUITE_FIXTURE(anv_arr_for_loop_with_elements_is_ok)
     anv_arr_destroy(arr);
 }
 
+ANV_TESTSUITE_FIXTURE(anv_arr_swap_ok)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    item_t item1 = { .a = 69 };
+    expect(anv_arr_push(arr, &item1) == ANV_ARR_RESULT_OK);
+    item_t item2 = { .a = 420 };
+    expect(anv_arr_push(arr, &item2) == ANV_ARR_RESULT_OK);
+    item_t item3 = { .a = 1337 };
+    expect(anv_arr_push(arr, &item3) == ANV_ARR_RESULT_OK);
+
+    expect(anv_arr_swap(arr, 0, 1) == ANV_ARR_RESULT_OK);
+
+    item_t *found_item_0 = anv_arr_get(arr, item_t, 0);
+    expect(found_item_0);
+    expect(found_item_0->a == 420);
+    item_t *found_item_1 = anv_arr_get(arr, item_t, 1);
+    expect(found_item_1);
+    expect(found_item_1->a == 69);
+    item_t *found_item_2 = anv_arr_get(arr, item_t, 2);
+    expect(found_item_2);
+    expect(found_item_2->a == 1337);
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_swap_with_null_arr_returns_invalid_params)
+{
+    expect(anv_arr_swap(NULL, 0, 1) == ANV_ARR_RESULT_INVALID_PARAMS);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_swap_with_invalid_arr_returns_invalid_params)
+{
+    void *mem = malloc(10);
+    expect(mem);
+
+    expect(anv_arr_swap(mem, 0, 1) == ANV_ARR_RESULT_INVALID_PARAMS);
+
+    free(mem);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_swap_when_same_index_return_collision_error)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    expect(anv_arr_swap(arr, 123, 123) == ANV_ARR_RESULT_INDEX_COLLISION);
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(
+    anv_arr_swap_when_index_out_of_bounds_return_out_of_bounds_err
+)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    item_t item1 = { .a = 69 };
+    expect(anv_arr_push(arr, &item1) == ANV_ARR_RESULT_OK);
+    item_t item2 = { .a = 420 };
+    expect(anv_arr_push(arr, &item2) == ANV_ARR_RESULT_OK);
+
+    expect(anv_arr_swap(arr, 0, 123) == ANV_ARR_RESULT_INDEX_OUT_OF_BOUNDS);
+
+    anv_arr_destroy(arr);
+}
+
 ANV_TESTSUITE_FIXTURE(anv_arr_remove_when_1_item_only_return_ok)
 {
     anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
@@ -578,10 +647,20 @@ ANV_TESTSUITE(
     ANV_TESTSUITE_REGISTER(anv_arr_get_with_element_returns_correct_element),
     ANV_TESTSUITE_REGISTER(anv_arr_for_loop_with_no_elements_is_ok),
     ANV_TESTSUITE_REGISTER(anv_arr_for_loop_with_elements_is_ok),
+    ANV_TESTSUITE_REGISTER(anv_arr_swap_ok),
+    ANV_TESTSUITE_REGISTER(anv_arr_swap_with_null_arr_returns_invalid_params),
+    ANV_TESTSUITE_REGISTER(anv_arr_swap_with_invalid_arr_returns_invalid_params
+    ),
+    ANV_TESTSUITE_REGISTER(anv_arr_swap_when_same_index_return_collision_error),
+    ANV_TESTSUITE_REGISTER(
+        anv_arr_swap_when_index_out_of_bounds_return_out_of_bounds_err
+    ),
     ANV_TESTSUITE_REGISTER(anv_arr_remove_when_1_item_only_return_ok),
     ANV_TESTSUITE_REGISTER(anv_arr_remove_multiple_items_ok),
     ANV_TESTSUITE_REGISTER(anv_arr_remove_with_null_arr_returns_invalid_params),
-    ANV_TESTSUITE_REGISTER(anv_arr_remove_with_invalid_arr_returns_invalid_params),
+    ANV_TESTSUITE_REGISTER(
+        anv_arr_remove_with_invalid_arr_returns_invalid_params
+    ),
     ANV_TESTSUITE_REGISTER(
         anv_arr_remove_when_empty_array_return_out_of_bounds_err
     ),
