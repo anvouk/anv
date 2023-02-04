@@ -402,9 +402,6 @@ anv_arr_length(anv_arr_t arr)
 static void *
 anv_arr__get_internal(anv_arr_t arr, size_t index, anv_arr__metadata *metadata)
 {
-    if (index >= metadata->arr_sz) {
-        return NULL;
-    }
     return (void *)((size_t)arr + metadata->item_sz * index);
 }
 
@@ -542,34 +539,37 @@ anv_arr__get(anv_arr_t arr, size_t index)
         return NULL;
     }
 
+    if (index >= metadata->arr_sz) {
+        return NULL;
+    }
     return anv_arr__get_internal(arr, index, metadata);
 }
 
 static void
 anv_arr__swap_internal(
-    anv_arr_t arr, anv_arr__metadata *metadata, size_t from_idx, size_t to_idx
+    anv_arr_t arr, anv_arr__metadata *metadata, size_t index_a, size_t index_b
 )
 {
-    void *from_item = anv_arr__get_internal(arr, from_idx, metadata);
-    void *to_item = anv_arr__get_internal(arr, to_idx, metadata);
+    void *item_a = anv_arr__get_internal(arr, index_a, metadata);
+    void *item_b = anv_arr__get_internal(arr, index_b, metadata);
 
     // If one of the two items to swap is NULL, we can avoid using the tmp item.
-    if (!from_item) {
-        memcpy(from_item, to_item, metadata->item_sz);
-        memset(to_item, 0, metadata->item_sz);
+    if (!item_a) {
+        memcpy(item_a, item_b, metadata->item_sz);
+        memset(item_b, 0, metadata->item_sz);
         return;
     }
-    if (!to_item) {
-        memcpy(to_item, from_item, metadata->item_sz);
-        memset(from_item, 0, metadata->item_sz);
+    if (!item_b) {
+        memcpy(item_b, item_a, metadata->item_sz);
+        memset(item_a, 0, metadata->item_sz);
         return;
     }
 
     void *tmp_item = ANV_ARR__TMP_ITEM(metadata);
 
-    memcpy(tmp_item, from_item, metadata->item_sz);
-    memcpy(from_item, to_item, metadata->item_sz);
-    memcpy(to_item, tmp_item, metadata->item_sz);
+    memcpy(tmp_item, item_a, metadata->item_sz);
+    memcpy(item_a, item_b, metadata->item_sz);
+    memcpy(item_b, tmp_item, metadata->item_sz);
 }
 
 anv_arr_result
@@ -597,6 +597,16 @@ anv_arr_swap(anv_arr_t arr, size_t index_a, size_t index_b)
     return ANV_ARR_RESULT_OK;
 }
 
+static void
+anv_arr__copy_internal(
+    anv_arr_t arr, anv_arr__metadata *metadata, size_t from_idx, size_t to_idx
+)
+{
+    void *from_item = anv_arr__get_internal(arr, from_idx, metadata);
+    void *to_item = anv_arr__get_internal(arr, to_idx, metadata);
+    memcpy(to_item, from_item, metadata->item_sz);
+}
+
 anv_arr_result
 anv_arr_remove(anv_arr_t arr, size_t index)
 {
@@ -615,7 +625,7 @@ anv_arr_remove(anv_arr_t arr, size_t index)
         return ANV_ARR_RESULT_INDEX_OUT_OF_BOUNDS;
     }
 
-    anv_arr__swap_internal(arr, metadata, index, metadata->arr_sz - 1);
+    anv_arr__copy_internal(arr, metadata, metadata->arr_sz - 1, index);
     metadata->arr_sz--;
     return ANV_ARR_RESULT_OK;
 }
