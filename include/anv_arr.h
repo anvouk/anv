@@ -116,7 +116,6 @@ TODO: anv_arr missing methods list
 - pop_first_slow (return and remove first entry, always uses delete_slow)
 - push_first (add to head and move existing at spot to last)
 - push_first_slow (add to head and traslate all to keep order)
-- shrink_to_fit (make capacity == length)
 - sorting algorithms (qsort, etc)
 */
 
@@ -297,6 +296,14 @@ anv_arr_result anv_arr_swap(anv_arr_t arr, size_t index_a, size_t index_b);
  */
 anv_arr_result anv_arr_remove(anv_arr_t arr, size_t index);
 
+anv_arr_result anv_arr__shrink_to_fit(anv_arr_t *refarr);
+
+/**
+ * Reallocates the array such as the array's capacity is equal to its length.
+ * @return Status code.
+ */
+#define anv_arr_shrink_to_fit(arr) anv_arr__shrink_to_fit((void *)&(arr))
+
 #ifdef __cplusplus
 }
 #endif
@@ -415,19 +422,32 @@ anv_arr__set_internal(
 }
 
 static anv_arr_result
+anv_arr__reallocate(
+    anv_arr_t *refarr, anv_arr__metadata *metadata, size_t new_capacity
+)
+{
+    void *resized_arr
+        = anv_meta_realloc(*refarr, metadata->item_sz * new_capacity);
+    if (ANV_ARR__UNLIKELY(!resized_arr)) {
+        return ANV_ARR_RESULT_ALLOC_ERROR;
+    }
+    metadata->arr_capacity = new_capacity;
+    *refarr = resized_arr;
+    return ANV_ARR_RESULT_OK;
+}
+
+static anv_arr_result
 anv_arr__push_internal(
     anv_arr_t *refarr, anv_arr__metadata *metadata, void *item
 )
 {
     if (metadata->arr_sz >= metadata->arr_capacity) {
         size_t new_capacity = anv_arr__reallocator(metadata->arr_capacity);
-        void *resized_arr
-            = anv_meta_realloc(*refarr, metadata->item_sz * new_capacity);
-        if (ANV_ARR__UNLIKELY(!resized_arr)) {
-            return ANV_ARR_RESULT_ALLOC_ERROR;
+        anv_arr_result res
+            = anv_arr__reallocate(refarr, metadata, new_capacity);
+        if (res != ANV_ARR_RESULT_OK) {
+            return res;
         }
-        metadata->arr_capacity = new_capacity;
-        *refarr = resized_arr;
     }
 
     anv_arr__set_internal(*refarr, metadata->arr_sz++, metadata, item);
@@ -598,6 +618,23 @@ anv_arr_remove(anv_arr_t arr, size_t index)
     anv_arr__swap_internal(arr, metadata, index, metadata->arr_sz - 1);
     metadata->arr_sz--;
     return ANV_ARR_RESULT_OK;
+}
+
+anv_arr_result
+anv_arr__shrink_to_fit(anv_arr_t *refarr)
+{
+    if (ANV_ARR__UNLIKELY(!refarr || !*refarr)) {
+        anv_arr__assert(0, "invalid null array");
+        return ANV_ARR_RESULT_INVALID_PARAMS;
+    }
+
+    anv_arr__metadata *metadata = (anv_arr__metadata *)anv_meta_get(*refarr);
+    if (ANV_ARR__UNLIKELY(!metadata)) {
+        anv_arr__assert(0, "cannot find metadata, is refarr a valid meta obj?");
+        return ANV_ARR_RESULT_INVALID_PARAMS;
+    }
+
+    return anv_arr__reallocate(refarr, metadata, metadata->arr_sz);
 }
 
 #endif /* ANV_ARR_IMPLEMENTATION */

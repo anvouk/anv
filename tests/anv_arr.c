@@ -611,6 +611,59 @@ ANV_TESTSUITE_FIXTURE(
     anv_arr_destroy(arr);
 }
 
+ANV_TESTSUITE_FIXTURE(anv_arr_shrink_to_fit_empty_array_is_ok)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    expect(anv_arr_shrink_to_fit(arr) == ANV_ARR_RESULT_OK);
+    expect(anv_arr_length(arr) == 0);
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_shrink_to_array_with_elements_is_ok)
+{
+    anv_arr_t arr = anv_arr_new(10, sizeof(item_t));
+    expect(arr);
+
+    item_t item1 = { .a = 69 };
+    expect(anv_arr_push(arr, &item1) == ANV_ARR_RESULT_OK);
+    item_t item2 = { .a = 690 };
+    expect(anv_arr_push(arr, &item2) == ANV_ARR_RESULT_OK);
+
+    expect(anv_arr_shrink_to_fit(arr) == ANV_ARR_RESULT_OK);
+    expect(anv_arr_length(arr) == 2);
+
+    item_t *found_item_0 = anv_arr_get(arr, item_t, 0);
+    expect(found_item_0);
+    expect(found_item_0->a == 69);
+    item_t *found_item_1 = anv_arr_get(arr, item_t, 1);
+    expect(found_item_1);
+    expect(found_item_1->a == 690);
+
+    anv_arr_destroy(arr);
+}
+
+ANV_TESTSUITE_FIXTURE(anv_arr_shrink_to_fit_with_null_arr_returns_invalid_params
+)
+{
+    void *mem = NULL;
+    expect(anv_arr_shrink_to_fit(mem) == ANV_ARR_RESULT_INVALID_PARAMS);
+}
+
+ANV_TESTSUITE_FIXTURE(
+    anv_arr_shrink_to_fit_with_invalid_arr_returns_invalid_params
+)
+{
+    void *mem = malloc(10);
+    expect(mem);
+
+    expect(anv_arr_shrink_to_fit(mem) == ANV_ARR_RESULT_INVALID_PARAMS);
+
+    free(mem);
+}
+
 ANV_TESTSUITE(
     tests_anv_arr,
     ANV_TESTSUITE_REGISTER(anv_arr_new_with_capacity_0_is_null),
@@ -666,6 +719,14 @@ ANV_TESTSUITE(
     ),
     ANV_TESTSUITE_REGISTER(
         anv_arr_remove_when_index_out_of_bounds_return_out_of_bounds_err
+    ),
+    ANV_TESTSUITE_REGISTER(anv_arr_shrink_to_fit_empty_array_is_ok),
+    ANV_TESTSUITE_REGISTER(anv_arr_shrink_to_array_with_elements_is_ok),
+    ANV_TESTSUITE_REGISTER(
+        anv_arr_shrink_to_fit_with_null_arr_returns_invalid_params
+    ),
+    ANV_TESTSUITE_REGISTER(
+        anv_arr_shrink_to_fit_with_invalid_arr_returns_invalid_params
     ),
 );
 
