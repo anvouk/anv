@@ -112,13 +112,12 @@ main(void)
 
 /*
 TODO: anv_arr missing methods list
-- delete (moves entry to last and decrement elements count)
-- delete_slow (delete entry at index and traslate all after to keep order)
+- remove_slow (delete entry at index and traslate all after to keep order)
 - pop_first_slow (return and remove first entry, always uses delete_slow)
 - push_first (add to head and move existing at spot to last)
 - push_first_slow (add to head and traslate all to keep order)
 - shrink_to_fit (make capacity == length)
-- sorting algorithms (narr?)
+- sorting algorithms (qsort, etc)
 */
 
 #include <stddef.h> /* for size_t */
@@ -148,6 +147,10 @@ typedef enum anv_arr_result {
      * Array index is >= the array's current length.
      */
     ANV_ARR_RESULT_INDEX_OUT_OF_BOUNDS = 10,
+    /**
+     * Two indexes collide with each-other (e.g. are most likely equal).
+     */
+    ANV_ARR_RESULT_INDEX_COLLISION = 11,
 } anv_arr_result;
 
 /**
@@ -192,7 +195,6 @@ anv_arr_t anv_arr_new(size_t arr_capacity, size_t item_sz);
 
 /**
  * Destroy an array.
- * @note This does not clean up eventual items allocations.
  */
 void anv_arr_destroy(anv_arr_t arr);
 
@@ -206,6 +208,7 @@ anv_arr_result anv_arr__insert(anv_arr_t *refarr, size_t index, void *item);
 
 /**
  * Insert item at index and move old item at the end of the array.
+ * This method does not guarantee items order.
  * @param item Object to insert, can be NULL but it's not recommended.
  * @return Status code.
  */
@@ -279,6 +282,14 @@ void *anv_arr__get(anv_arr_t arr, size_t index);
  */
 #define anv_arr_get(arr, type, index) ((type *)anv_arr__get(arr, index))
 
+/**
+ * Delete an item from the array at the specified index.
+ * This method does not guarantee items order.
+ * This method performs no allocations during the swap.
+ * @return Status code.
+ */
+anv_arr_result anv_arr_remove(anv_arr_t arr, size_t index);
+
 #ifdef __cplusplus
 }
 #endif
@@ -304,7 +315,14 @@ typedef struct anv_arr__metadata {
     size_t arr_sz;
     size_t arr_capacity;
     size_t item_sz;
+    // This is used to perform swaps without having to allocate extra memory.
+    // Always leave as last element in the struct.
+    // Always access with ANV_ARR__TMP_ITEM(metadata).
+    void *tmp_item;
 } anv_arr__metadata;
+
+    #define ANV_ARR__TMP_ITEM_OFFSET    offsetof(anv_arr__metadata, tmp_item)
+    #define ANV_ARR__TMP_ITEM(metadata) ((metadata) + ANV_ARR__TMP_ITEM_OFFSET)
 
 static size_t
 anv_arr__reallocator_default(size_t old_capacity)
@@ -332,9 +350,16 @@ anv_arr_new(size_t arr_capacity, size_t item_sz)
         .arr_sz = 0,
         .arr_capacity = arr_capacity,
         .item_sz = item_sz,
+        .tmp_item = NULL,
     };
+    // Note: the weird metadata size calculation is to make tmp_item of the
+    // exact size of an item to insert. This empty spot is used to perform swaps
+    // and such operations without having to allocate extra memory.
+    // Always access tmp_item with ANV_ARR__TMP_ITEM(metadata).
     void *arr = anv_meta_malloc(
-        &metadata, sizeof(anv_arr__metadata), item_sz * arr_capacity
+        &metadata,
+        sizeof(anv_arr__metadata) + item_sz - sizeof(void *),
+        item_sz * arr_capacity
     );
     return arr;
 }
@@ -491,6 +516,56 @@ anv_arr__get(anv_arr_t arr, size_t index)
     }
 
     return anv_arr__get_internal(arr, index, metadata);
+}
+
+static void
+anv_arr__swap_internal(
+    anv_arr_t arr, anv_arr__metadata *metadata, size_t from_idx, size_t to_idx
+)
+{
+    void *from_item = anv_arr__get_internal(arr, from_idx, metadata);
+    void *to_item = anv_arr__get_internal(arr, to_idx, metadata);
+
+    // If one of the two items to swap is NULL, we can avoid using the tmp item.
+    if (!from_item) {
+        memcpy(from_item, to_item, metadata->item_sz);
+        memset(to_item, 0, metadata->item_sz);
+        return;
+    }
+    if (!to_item) {
+        memcpy(to_item, from_item, metadata->item_sz);
+        memset(from_item, 0, metadata->item_sz);
+        return;
+    }
+
+    void *tmp_item = ANV_ARR__TMP_ITEM(metadata);
+
+    memcpy(tmp_item, from_item, metadata->item_sz);
+    memcpy(from_item, to_item, metadata->item_sz);
+    memcpy(to_item, tmp_item, metadata->item_sz);
+}
+
+anv_arr_result
+anv_arr_remove(anv_arr_t arr, size_t index)
+{
+    if (ANV_ARR__UNLIKELY(!arr)) {
+        anv_arr__assert(0, "invalid null array");
+        return ANV_ARR_RESULT_INVALID_PARAMS;
+    }
+
+    anv_arr__metadata *metadata = (anv_arr__metadata *)anv_meta_get(arr);
+    if (ANV_ARR__UNLIKELY(!metadata)) {
+        anv_arr__assert(0, "cannot find metadata, is arr a valid meta obj?");
+        return ANV_ARR_RESULT_INVALID_PARAMS;
+    }
+
+    if (index >= metadata->arr_sz) {
+        return ANV_ARR_RESULT_INDEX_OUT_OF_BOUNDS;
+    }
+
+    anv_arr__swap_internal(arr, metadata, index, metadata->arr_sz - 1);
+    metadata->arr_sz--;
+    return ANV_ARR_RESULT_OK;
 }
 
 #endif /* ANV_ARR_IMPLEMENTATION */
