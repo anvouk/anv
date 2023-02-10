@@ -286,7 +286,7 @@ ANV_TESTSUITE_FIXTURE(anv_meta_get_offset_ok)
     expect(retrieved_metadata->a == 10);
     expect(retrieved_metadata->b == 20);
 
-    size_t offset = anv_meta_get_offset(mem);
+    ptrdiff_t offset = anv_meta_get_offset(mem);
     metadata_t *meta_manual = (metadata_t *)((size_t)mem - offset);
     metadata_t *meta_method = (metadata_t *)anv_meta_get(mem);
     expect(meta_manual == meta_method);

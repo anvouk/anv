@@ -116,6 +116,7 @@ TODO: anv_arr missing methods list
 - pop_first_slow (return and remove first entry, always uses delete_slow)
 - push_first (add to head and move existing at spot to last)
 - push_first_slow (add to head and traslate all to keep order)
+- replace (replace item at index)
 - sorting algorithms (qsort, etc)
 */
 
@@ -550,22 +551,9 @@ anv_arr__swap_internal(
     anv_arr_t arr, anv_arr__metadata *metadata, size_t index_a, size_t index_b
 )
 {
+    void *tmp_item = ANV_ARR__TMP_ITEM(metadata);
     void *item_a = anv_arr__get_internal(arr, index_a, metadata);
     void *item_b = anv_arr__get_internal(arr, index_b, metadata);
-
-    // If one of the two items to swap is NULL, we can avoid using the tmp item.
-    if (!item_a) {
-        memcpy(item_a, item_b, metadata->item_sz);
-        memset(item_b, 0, metadata->item_sz);
-        return;
-    }
-    if (!item_b) {
-        memcpy(item_b, item_a, metadata->item_sz);
-        memset(item_a, 0, metadata->item_sz);
-        return;
-    }
-
-    void *tmp_item = ANV_ARR__TMP_ITEM(metadata);
 
     memcpy(tmp_item, item_a, metadata->item_sz);
     memcpy(item_a, item_b, metadata->item_sz);

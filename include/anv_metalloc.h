@@ -113,7 +113,7 @@ done:
 #ifndef ANV_METALLOC_H
 #define ANV_METALLOC_H
 
-#include <stddef.h> /* for size_t */
+#include <stddef.h> /* for size_t, ptrdiff_t */
 
 #ifndef ANV_METALLOC_METASIZE
     #define ANV_METALLOC_METASIZE unsigned char
@@ -177,7 +177,7 @@ anv_meta_result anv_meta_set(void *mem, void *metadata);
  *       passed to regular malloc and thus freeable with regular free.
  * @param mem Metallocated memory block.
  */
-size_t anv_meta_get_offset(void *mem);
+ptrdiff_t anv_meta_get_offset(void *mem);
 
 /**
  * Allocate on the heap a new matallocated object.
@@ -302,13 +302,13 @@ anv_meta_set(void *mem, void *metadata)
     return ANV_META_RESULT_OK;
 }
 
-static size_t
+static ptrdiff_t
 anv_meta_get__offset(void *mem)
 {
-    return (size_t)(anv_meta__getsz(mem) + METASZ_SZ + CHKB_SZ);
+    return (ptrdiff_t)(anv_meta__getsz(mem) + METASZ_SZ + CHKB_SZ);
 }
 
-size_t
+ptrdiff_t
 anv_meta_get_offset(void *mem)
 {
     if (ANV_META__UNLIKELY(!anv_meta_isvalid(mem))) {
@@ -360,7 +360,7 @@ anv_meta_realloc(void *mem, size_t new_sz)
         return NULL;
     }
 
-    size_t padd = anv_meta_get__offset(mem);
+    ptrdiff_t padd = anv_meta_get__offset(mem);
     void *full_mem = (void *)((size_t)mem - padd);
 
     anv_meta_size_t meta_sz = anv_meta__getsz(mem);

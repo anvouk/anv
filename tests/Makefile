@@ -1,6 +1,6 @@
-.SILENT: all setup anv_metalloc anv_arr clean
+.SILENT: all setup clean
 
-CFLAGS = -Wall -Wextra -Werror -pedantic -std=c99
+CFLAGS = -Wall -Wextra -Werror -Wpedantic -std=c99
 OUTDIR = build
 
 all: anv_metalloc anv_arr
