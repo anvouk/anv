@@ -315,7 +315,7 @@ anv_arr_result anv_arr__shrink_to_fit(anv_arr_t *refarr);
 
     #ifndef anv_arr__assert
         #include <assert.h>
-        #define anv_arr__assert(x) assert(x)
+        #define anv_arr__assert(cond, msg) assert((cond) && (msg))
     #endif
 
     #ifdef __GNUC__
@@ -421,34 +421,42 @@ anv_arr__set_internal(
 
 static anv_arr_result
 anv_arr__reallocate(
-    anv_arr_t *refarr, anv_arr__metadata *metadata, size_t new_capacity
+    anv_arr_t *refarr, anv_arr__metadata **refmetadata, size_t new_capacity
 )
 {
     void *resized_arr
-        = anv_meta_realloc(*refarr, metadata->item_sz * new_capacity);
+        = anv_meta_realloc(*refarr, (*refmetadata)->item_sz * new_capacity);
     if (ANV_ARR__UNLIKELY(!resized_arr)) {
         return ANV_ARR_RESULT_ALLOC_ERROR;
     }
-    metadata->arr_capacity = new_capacity;
+    // during reallocations the metadata might be moved somewhere else, we
+    // retrieve it again and propagate it upwards where needed.
+    anv_arr__metadata *new_metadata_loc
+        = (anv_arr__metadata *)anv_meta_get(resized_arr);
+    *refmetadata = new_metadata_loc;
+    new_metadata_loc->arr_capacity = new_capacity;
     *refarr = resized_arr;
     return ANV_ARR_RESULT_OK;
 }
 
 static anv_arr_result
 anv_arr__push_internal(
-    anv_arr_t *refarr, anv_arr__metadata *metadata, void *item
+    anv_arr_t *refarr, anv_arr__metadata **refmetadata, void *item
 )
 {
-    if (metadata->arr_sz >= metadata->arr_capacity) {
-        size_t new_capacity = anv_arr__reallocator(metadata->arr_capacity);
+    if ((*refmetadata)->arr_sz >= (*refmetadata)->arr_capacity) {
+        size_t new_capacity
+            = anv_arr__reallocator((*refmetadata)->arr_capacity);
         anv_arr_result res
-            = anv_arr__reallocate(refarr, metadata, new_capacity);
+            = anv_arr__reallocate(refarr, refmetadata, new_capacity);
         if (res != ANV_ARR_RESULT_OK) {
             return res;
         }
     }
 
-    anv_arr__set_internal(*refarr, metadata->arr_sz++, metadata, item);
+    anv_arr__set_internal(
+        *refarr, (*refmetadata)->arr_sz++, (*refmetadata), item
+    );
     return ANV_ARR_RESULT_OK;
 }
 
@@ -473,13 +481,14 @@ anv_arr__insert(anv_arr_t *refarr, size_t index, void *item)
 
     // Empty array have no existing item to move.
     if (metadata->arr_sz == 0) {
-        return anv_arr__push_internal(refarr, metadata, item);
+        return anv_arr__push_internal(refarr, &metadata, item);
     } else {
         // Here it's import that we push the new item to last before
         // updating the current item. This ensure the old item value is memcpyed
         // to the new location.
         void *old_item = anv_arr__get_internal(*refarr, index, metadata);
-        anv_arr_result res = anv_arr__push_internal(refarr, metadata, old_item);
+        anv_arr_result res
+            = anv_arr__push_internal(refarr, &metadata, old_item);
         if (res == ANV_ARR_RESULT_OK) {
             anv_arr__set_internal(*refarr, index, metadata, item);
         }
@@ -501,7 +510,7 @@ anv_arr__push(anv_arr_t *refarr, void *item)
         return ANV_ARR_RESULT_INVALID_PARAMS;
     }
 
-    return anv_arr__push_internal(refarr, metadata, item);
+    return anv_arr__push_internal(refarr, &metadata, item);
 }
 
 void *
@@ -632,7 +641,7 @@ anv_arr__shrink_to_fit(anv_arr_t *refarr)
         return ANV_ARR_RESULT_INVALID_PARAMS;
     }
 
-    return anv_arr__reallocate(refarr, metadata, metadata->arr_sz);
+    return anv_arr__reallocate(refarr, &metadata, metadata->arr_sz);
 }
 
 #endif /* ANV_ARR_IMPLEMENTATION */
