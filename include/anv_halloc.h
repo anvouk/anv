@@ -34,28 +34,28 @@ void anvh_free(void *mem);
     #define ANVH__DATA_SZ (sizeof(uint16_t) * 4 + sizeof(void **))
 
     #define anvh__get_check_val(mem)                                           \
-        (*((uint16_t *)((mem) - (sizeof(uint16_t) * 1))))
+        (*((uint16_t *)((size_t)(mem) - (sizeof(uint16_t) * 1))))
     #define anvh__set_check_val(mem, val) anvh__get_check_val(mem) = (val)
 
     #define anvh__get_children_capacity(mem)                                   \
-        (*((uint16_t *)((mem) - (sizeof(uint16_t) * 2))))
+        (*((uint16_t *)((size_t)(mem) - (sizeof(uint16_t) * 2))))
     #define anvh__set_children_capacity(mem, val)                              \
         anvh__get_children_capacity(mem) = (val)
 
     #define anvh__get_children_count(mem)                                      \
-        (*((uint16_t *)((mem) - (sizeof(uint16_t) * 3))))
+        (*((uint16_t *)((size_t)(mem) - (sizeof(uint16_t) * 3))))
     #define anvh__set_children_count(mem, val)                                 \
         anvh__get_children_count(mem) = (val)
 
     #define anvh__get_parent_idx(mem)                                          \
-        (*((uint16_t *)((mem) - (sizeof(uint16_t) * 4))))
+        (*((uint16_t *)((size_t)(mem) - (sizeof(uint16_t) * 4))))
     #define anvh__set_parent_idx(mem, val) anvh__get_parent_idx(mem) = (val)
 
     #define anvh__get_parent(mem)                                              \
-        (*((void **)((mem) - (sizeof(uint16_t) * 4 + sizeof(void *)))))
+        (*((void **)((size_t)(mem) - (sizeof(uint16_t) * 4 + sizeof(void *)))))
     #define anvh__set_parent(mem, val) anvh__get_parent(mem) = (val)
 
-    #define anvh__get_children(mem) ((void **)((mem)-ANVH__DATA_SZ))
+    #define anvh__get_children(mem) ((void **)((size_t)(mem)-ANVH__DATA_SZ))
 
     #define anvh__get_child_at(mem, idx)                                       \
         (*(anvh__get_children(mem) - sizeof(void *) * (idx)))
@@ -89,14 +89,14 @@ anvh_alloc(void *parent, size_t alloc_sz, uint16_t children_capacity)
     if (!mem) {
         return NULL;
     }
-    mem += data_sz;
+    mem = (void *)((size_t)mem + data_sz);
 
     anvh__set_check_val(mem, ANVH__CHECK_VAL);
     anvh__set_children_capacity(mem, children_capacity);
     if (parent) {
         anvh__set_parent(mem, parent);
         if (!anvh__attach_child(parent, mem)) {
-            free(mem - data_sz);
+            free((void *)((size_t)mem - data_sz));
             return NULL;
         }
     }
@@ -127,7 +127,7 @@ anvh_free(void *mem)
         anvh_free(anvh__get_child_at(mem, i));
     }
 
-    free(mem - data_sz);
+    free((void *)((size_t)mem - data_sz));
 }
 
     /*
