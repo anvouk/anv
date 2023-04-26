@@ -52,13 +52,13 @@ void anvh_free(void *mem);
     #define anvh__set_parent_idx(mem, val) anvh__get_parent_idx(mem) = (val)
 
     #define anvh__get_parent(mem)                                              \
-        (*((void **)((size_t)(mem) - (sizeof(uint16_t) * 4 + sizeof(void *)))))
+        (*((void **)((size_t)(mem) - (sizeof(uint16_t) * 4 + sizeof(void **)))))
     #define anvh__set_parent(mem, val) anvh__get_parent(mem) = (val)
 
     #define anvh__get_children(mem) ((void **)((size_t)(mem)-ANVH__DATA_SZ))
 
     #define anvh__get_child_at(mem, idx)                                       \
-        (*(anvh__get_children(mem) - sizeof(void *) * (idx)))
+        (*(void **)((size_t)anvh__get_children(mem) - sizeof(void *) * (idx)))
     #define anvh__set_child_at(mem, idx, val)                                  \
         anvh__get_child_at(mem, idx) = (val)
 
@@ -94,7 +94,6 @@ anvh_alloc(void *parent, size_t alloc_sz, uint16_t children_capacity)
     anvh__set_check_val(mem, ANVH__CHECK_VAL);
     anvh__set_children_capacity(mem, children_capacity);
     if (parent) {
-        anvh__set_parent(mem, parent);
         if (!anvh__attach_child(parent, mem)) {
             free((void *)((size_t)mem - data_sz));
             return NULL;
