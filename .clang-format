@@ -14,5 +14,5 @@ IndentCaseLabels: true
 AlignConsecutiveMacros:
     Enabled: true
     AcrossComments: true
-IndentPPDirectives: BeforeHash
+IndentPPDirectives: None
 AlignEscapedNewlines: Right

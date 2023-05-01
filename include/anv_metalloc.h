@@ -116,7 +116,7 @@ done:
 #include <stddef.h> /* for size_t, ptrdiff_t */
 
 #ifndef ANV_METALLOC_METASIZE
-    #define ANV_METALLOC_METASIZE unsigned char
+#define ANV_METALLOC_METASIZE unsigned char
 #endif
 
 typedef ANV_METALLOC_METASIZE anv_meta_size_t;
@@ -218,29 +218,29 @@ void *anv_meta_realloc(void *mem, size_t new_sz);
 
 #ifdef ANV_METALLOC_IMPLEMENTATION
 
-    #include <stdint.h> /* for uint32_t */
-    #include <stdlib.h> /* for malloc(), ... */
-    #include <string.h> /* for memset() */
+#include <stdint.h> /* for uint32_t */
+#include <stdlib.h> /* for malloc(), ... */
+#include <string.h> /* for memset() */
 
-    #ifndef anv_meta__assert
-        #include <assert.h>
-        #define anv_meta__assert(cond, errmsg) assert((cond) && (errmsg))
-    #endif
+#ifndef anv_meta__assert
+#include <assert.h>
+#define anv_meta__assert(cond, errmsg) assert((cond) && (errmsg))
+#endif
 
-    #ifdef __GNUC__
-        #define ANV_META__LIKELY(x)   __builtin_expect((x), 1)
-        #define ANV_META__UNLIKELY(x) __builtin_expect((x), 0)
-    #else
-        #define ANV_META__LIKELY(x)   (x)
-        #define ANV_META__UNLIKELY(x) (x)
-    #endif
+#ifdef __GNUC__
+#define ANV_META__LIKELY(x)   __builtin_expect((x), 1)
+#define ANV_META__UNLIKELY(x) __builtin_expect((x), 0)
+#else
+#define ANV_META__LIKELY(x)   (x)
+#define ANV_META__UNLIKELY(x) (x)
+#endif
 
 typedef uint32_t chkb_t;
 
-    #define CHKB ((chkb_t)0x696941469)
+#define CHKB ((chkb_t)0x696941469)
 
-    #define METASZ_SZ sizeof(anv_meta_size_t)
-    #define CHKB_SZ   sizeof(chkb_t)
+#define METASZ_SZ sizeof(anv_meta_size_t)
+#define CHKB_SZ   sizeof(chkb_t)
 
 int
 anv_meta_isvalid(void *mem)

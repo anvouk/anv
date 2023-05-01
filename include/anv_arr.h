@@ -311,20 +311,20 @@ anv_arr_result anv_arr__shrink_to_fit(anv_arr_t *refarr);
 
 #ifdef ANV_ARR_IMPLEMENTATION
 
-    #include "anv_metalloc.h"
+#include "anv_metalloc.h"
 
-    #ifndef anv_arr__assert
-        #include <assert.h>
-        #define anv_arr__assert(cond, msg) assert((cond) && (msg))
-    #endif
+#ifndef anv_arr__assert
+#include <assert.h>
+#define anv_arr__assert(cond, msg) assert((cond) && (msg))
+#endif
 
-    #ifdef __GNUC__
-        #define ANV_ARR__LIKELY(x)   __builtin_expect((x), 1)
-        #define ANV_ARR__UNLIKELY(x) __builtin_expect((x), 0)
-    #else
-        #define ANV_ARR__LIKELY(x)   (x)
-        #define ANV_ARR__UNLIKELY(x) (x)
-    #endif
+#ifdef __GNUC__
+#define ANV_ARR__LIKELY(x)   __builtin_expect((x), 1)
+#define ANV_ARR__UNLIKELY(x) __builtin_expect((x), 0)
+#else
+#define ANV_ARR__LIKELY(x)   (x)
+#define ANV_ARR__UNLIKELY(x) (x)
+#endif
 
 typedef struct anv_arr__metadata {
     size_t arr_sz;
@@ -336,8 +336,8 @@ typedef struct anv_arr__metadata {
     void *tmp_item;
 } anv_arr__metadata;
 
-    #define ANV_ARR__TMP_ITEM_OFFSET    offsetof(anv_arr__metadata, tmp_item)
-    #define ANV_ARR__TMP_ITEM(metadata) ((metadata) + ANV_ARR__TMP_ITEM_OFFSET)
+#define ANV_ARR__TMP_ITEM_OFFSET    offsetof(anv_arr__metadata, tmp_item)
+#define ANV_ARR__TMP_ITEM(metadata) ((metadata) + ANV_ARR__TMP_ITEM_OFFSET)
 
 static size_t
 anv_arr__reallocator_default(size_t old_capacity)

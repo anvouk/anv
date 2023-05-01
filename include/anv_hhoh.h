@@ -77,7 +77,7 @@
 #define ANV_HHOH_H
 
 #ifndef _WIN32
-    #error Only available on Windows!
+#error Only available on Windows!
 #endif
 
 #pragma once
@@ -86,7 +86,7 @@
 #include <windows.h>
 
 #ifndef ANV_HHOH_EXP
-    #define ANV_HHOH_EXP extern
+#define ANV_HHOH_EXP extern
 #endif
 
 #ifdef __cplusplus
@@ -141,15 +141,15 @@ ANV_HHOH_EXP BOOL anv_hhoh_cfd_to_win32(ANV_HANDLE *hd);
 
 #ifdef ANV_HHOH_IMPLEMENTATION
 
-    #include <fcntl.h>
-    #include <io.h>
-    #include <sys/stat.h>
-    #include <tchar.h>
+#include <fcntl.h>
+#include <io.h>
+#include <sys/stat.h>
+#include <tchar.h>
 
-    #ifndef anv_hhoh__assert
-        #include <assert.h>
-        #define anv_hhoh__assert(x) assert(x)
-    #endif
+#ifndef anv_hhoh__assert
+#include <assert.h>
+#define anv_hhoh__assert(x) assert(x)
+#endif
 
 /*------------------------------------------------------------------------------
     open functions

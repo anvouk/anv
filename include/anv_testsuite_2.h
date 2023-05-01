@@ -210,18 +210,18 @@ main(void)
  * Toggle UNIX console colors.
  */
 #ifdef ANV_TESTSUITE_DISABLE_COLORS
-    #define ANV_TESTSUITE__STR_GREEN(str) str
-    #define ANV_TESTSUITE__STR_RED(str)   str
+#define ANV_TESTSUITE__STR_GREEN(str) str
+#define ANV_TESTSUITE__STR_RED(str)   str
 #else
-    #define ANV_TESTSUITE__STR_GREEN(str) "\033[32m" str "\033[39m"
-    #define ANV_TESTSUITE__STR_RED(str)   "\033[31m" str "\033[39m"
+#define ANV_TESTSUITE__STR_GREEN(str) "\033[32m" str "\033[39m"
+#define ANV_TESTSUITE__STR_RED(str)   "\033[31m" str "\033[39m"
 #endif
 
 /**
  * Change dotted padding length for fixtures.
  */
 #ifndef ANV_TESTSUITE_PADDING
-    #define ANV_TESTSUITE_PADDING 100
+#define ANV_TESTSUITE_PADDING 100
 #endif
 
 #define ANV_TESTSUITE__LEN(x) (sizeof(x) / sizeof((x)[0]))
@@ -558,8 +558,8 @@ anv_testsuite__expect_failed(
     } while (0)
 
 #ifndef ANV_TESTSUITE_DISABLE_ABBREVIATIONS
-    #define expect     anv_testsuite_expect
-    #define expect_msg anv_testsuite_expect_msg
+#define expect     anv_testsuite_expect
+#define expect_msg anv_testsuite_expect_msg
 #endif
 
 #endif /* ANV_TESTSUITE_2_H */
