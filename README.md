@@ -54,3 +54,7 @@ Additional examples/demos can be found inside the `examples` folder.
 
 1. `cd tests`
 2. `make`
+
+## Benchmarks
+
+Benchmarks against other single header C libs can be found [here](https://github.com/anvouk/anv_benchmarks)
