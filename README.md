@@ -5,10 +5,11 @@ anv is a collection of one-header-only C99 libraries.
 All libraries prefixed with `anv_` are made by me and under MIT license.
 
 The libs inside the `repackages` folder are existing libs which have been converted
-into single header-only and plus eventual minor changes. These should be 1:1 drop-in replacement
-to the originals without any changes to public interfaces.
+into single header-only and/or with changes. These should be 1:1 drop-in replacement
+to the originals without any changes in existing public interfaces code.
 
 List of changes applied:
+
 - Converted to single header only lib
 - Reformatted/cleaned-up
 - Made conformant with stricter build options (e.g. `-Wall -Wextra -Werror -Wpedantic`)
@@ -38,9 +39,11 @@ After this is done, the header can be included as normal wherever is needed.
 
 ## Repackaged libs
 
-| Headers  |  OS   | LICENSE | SOURCE                             | Description                   |
-|:--------:|:-----:|:-------:|------------------------------------|-------------------------------|
-| halloc.h | Cross |  BSD-2  | https://github.com/apankrat/halloc | Hierarchical memory allocator |
+|   Headers   |  OS   |      LICENSE      | SOURCE                             | Description                                                                       |
+|:-----------:|:-----:|:-----------------:|------------------------------------|-----------------------------------------------------------------------------------|
+|  halloc.h   | Cross |       BSD-2       | https://github.com/apankrat/halloc | Hierarchical memory allocator                                                     |
+| stb_alloc.h | Cross | MIT/PUBLIC DOMAIN | https://github.com/nothings/stb    | Hierarchical memory allocator from stb.h + fixes                                  |
+|  stb_ds.h   | Cross | MIT/PUBLIC DOMAIN | https://github.com/nothings/stb    | Dynamic arrays/maps but with stb_alloc.h integration (allows memory 'auto-free'). |
 
 ## Deprecated libs
 
