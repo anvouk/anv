@@ -75,6 +75,7 @@
 //   which had an existing '.clang-format' config file).
 // - added function stb_malloc_is_valid which returns 1 if given pointer is a
 //   non-null stb_alloc'ated memory block, 0 otherwise.
+// - add support for custom allocators (see STB__ALLOC_*)
 
 #ifndef INCLUDE_STB_ALLOC_H
 #define INCLUDE_STB_ALLOC_H
@@ -136,6 +137,18 @@ size_t stb_alloc_count_alloc = 0;
 #define stb__debug_set_counter(name, val) ((name) = (val))
 #else
 #define stb__debug_set_counter(name, val) ((void)0)
+#endif
+
+#ifndef STB__ALLOC_MALLOC
+#define STB__ALLOC_MALLOC(s) malloc(s)
+#endif
+
+#ifndef STB__ALLOC_REALLOC
+#define STB__ALLOC_REALLOC(p, s) realloc(p, s)
+#endif
+
+#ifndef STB__ALLOC_FREE
+#define STB__ALLOC_FREE(p) free(p)
 #endif
 
 typedef struct stb__chunk {
@@ -235,7 +248,7 @@ stb_free(void *p)
             if (s->next) {
                 *stb__prevn(s->next) = s->prevn;
             }
-            free(s);
+            STB__ALLOC_FREE(s);
             return;
         }
         case STB__alloc: {
@@ -257,7 +270,7 @@ stb_free(void *p)
                     stb__debug_set_counter(
                         stb_alloc_count_free, stb_alloc_count_free + c->alloc
                     );
-                    free(c);
+                    STB__ALLOC_FREE(c);
                     c = n;
                 }
             }
@@ -273,7 +286,7 @@ stb_free(void *p)
             }
 
             // now free self
-            free(s);
+            STB__ALLOC_FREE(s);
             return;
         }
         default:
@@ -447,7 +460,9 @@ stb__alloc_chunk(stb__alloc *src, int size, int align, int pre_align)
         // the loop is because the alignment may cause problems if it's big...
         // and we don't know what our chunk alignment is going to be
         while (1) {
-            n = (stb__chunk *)malloc(STB_ALLOC_ALIGNMENT + chunk_size);
+            n = (stb__chunk *)STB__ALLOC_MALLOC(
+                STB_ALLOC_ALIGNMENT + chunk_size
+            );
             if (n == NULL) {
                 return NULL;
             }
@@ -469,7 +484,7 @@ stb__alloc_chunk(stb__alloc *src, int size, int align, int pre_align)
                 return p;
             }
 
-            free(n);
+            STB__ALLOC_FREE(n);
             chunk_size += STB_ALLOC_ALIGNMENT + align;
         }
     }
@@ -586,7 +601,7 @@ malloc_base(void *context, size_t size, stb__alloc_type t, int align)
 
     switch (t) {
         case STB__alloc: {
-            stb__alloc *s = (stb__alloc *)malloc(size + sizeof(*s));
+            stb__alloc *s = (stb__alloc *)STB__ALLOC_MALLOC(size + sizeof(*s));
             if (s == NULL) {
                 return NULL;
             }
@@ -599,7 +614,8 @@ malloc_base(void *context, size_t size, stb__alloc_type t, int align)
         }
 
         case STB__nochildren: {
-            stb__nochildren *s = (stb__nochildren *)malloc(size + sizeof(*s));
+            stb__nochildren *s
+                = (stb__nochildren *)STB__ALLOC_MALLOC(size + sizeof(*s));
             if (s == NULL) {
                 return NULL;
             }
@@ -696,7 +712,7 @@ stb_realloc(void *ptr, size_t newsize)
     if (t == STB__alloc) {
         stb__alloc *s = (stb__alloc *)ptr - 1;
 
-        s = (stb__alloc *)realloc(s, newsize + sizeof(*s));
+        s = (stb__alloc *)STB__ALLOC_REALLOC(s, newsize + sizeof(*s));
         if (s == NULL) {
             return NULL;
         }
@@ -717,7 +733,7 @@ stb_realloc(void *ptr, size_t newsize)
     } else {
         stb__nochildren *s = (stb__nochildren *)ptr - 1;
 
-        s = (stb__nochildren *)realloc(ptr, newsize + sizeof(s));
+        s = (stb__nochildren *)STB__ALLOC_REALLOC(ptr, newsize + sizeof(s));
         if (s == NULL) {
             return NULL;
         }
