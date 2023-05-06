@@ -1,6 +1,6 @@
 #include <assert.h>
-#include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 
 // stb_alloc.h is needed before stb_ds.h implementation
 #define STB_ALLOC_IMPLEMENTATION
@@ -193,6 +193,8 @@ main(void)
         dump_stb_alloc();
         assert(stb_alloc_count_alloc == stb_alloc_count_free);
     }
+
+    stbds_rand_seed(time(NULL));
 
     // simple hashmap example
     {
