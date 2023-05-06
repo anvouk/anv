@@ -62,7 +62,7 @@
 //
 // Note: the code was originally part of the huge stb.h lib. Other stuff which
 // has been changed includes:
-// - STB_ALLOC_ALIGNMENT and STB_ALLOC_CHUNK_SZ config macros (it is no longer
+// - STB__ALLOC_ALIGNMENT and STB__ALLOC_CHUNK_SZ config macros (it is no longer
 //   possible to configure at runtime these parameters)
 // - exposed stb_malloc_string
 // - C++ 'extern C' wrapper
@@ -82,14 +82,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-
-#ifndef STB_ALLOC_ALIGNMENT
-#define STB_ALLOC_ALIGNMENT 32
-#endif
-
-#ifndef STB_ALLOC_CHUNK_SZ
-#define STB_ALLOC_CHUNK_SZ (UINT16_MAX + 1)
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -137,6 +129,14 @@ size_t stb_alloc_count_alloc = 0;
 #define stb__debug_set_counter(name, val) ((name) = (val))
 #else
 #define stb__debug_set_counter(name, val) ((void)0)
+#endif
+
+#ifndef STB__ALLOC_ALIGNMENT
+#define STB__ALLOC_ALIGNMENT 32
+#endif
+
+#ifndef STB__ALLOC_CHUNK_SZ
+#define STB__ALLOC_CHUNK_SZ (UINT16_MAX + 1)
 #endif
 
 #ifndef STB__ALLOC_MALLOC
@@ -419,7 +419,7 @@ stb__alloc_chunk(stb__alloc *src, int size, int align, int pre_align)
     void *p;
     stb__chunk *c = stb__chunks(src);
 
-    if (c && size <= STB_ALLOC_CHUNK_SZ) {
+    if (c && size <= STB__ALLOC_CHUNK_SZ) {
 
         p = stb__try_chunk(c, size, align, pre_align);
         if (p) {
@@ -448,20 +448,20 @@ stb__alloc_chunk(stb__alloc *src, int size, int align, int pre_align)
     {
         stb__chunk *n;
 
-        int chunk_size = STB_ALLOC_CHUNK_SZ;
+        int chunk_size = STB__ALLOC_CHUNK_SZ;
         // we're going to allocate a new chunk to put this in
         if (size > chunk_size) {
             chunk_size = size;
         }
 
-        assert(sizeof(*n) + pre_align <= STB_ALLOC_ALIGNMENT);
+        assert(sizeof(*n) + pre_align <= STB__ALLOC_ALIGNMENT);
 
         // loop trying to allocate a large enough chunk
         // the loop is because the alignment may cause problems if it's big...
         // and we don't know what our chunk alignment is going to be
         while (1) {
             n = (stb__chunk *)STB__ALLOC_MALLOC(
-                STB_ALLOC_ALIGNMENT + chunk_size
+                STB__ALLOC_ALIGNMENT + chunk_size
             );
             if (n == NULL) {
                 return NULL;
@@ -485,7 +485,7 @@ stb__alloc_chunk(stb__alloc *src, int size, int align, int pre_align)
             }
 
             STB__ALLOC_FREE(n);
-            chunk_size += STB_ALLOC_ALIGNMENT + align;
+            chunk_size += STB__ALLOC_ALIGNMENT + align;
         }
     }
 }
@@ -660,31 +660,31 @@ malloc_base(void *context, size_t size, stb__alloc_type t, int align)
 void *
 stb_malloc_global(size_t size)
 {
-    return malloc_base(NULL, size, STB__alloc, -STB_ALLOC_ALIGNMENT);
+    return malloc_base(NULL, size, STB__alloc, -STB__ALLOC_ALIGNMENT);
 }
 
 void *
 stb_malloc(void *context, size_t size)
 {
-    return malloc_base(context, size, STB__alloc, -STB_ALLOC_ALIGNMENT);
+    return malloc_base(context, size, STB__alloc, -STB__ALLOC_ALIGNMENT);
 }
 
 void *
 stb_malloc_nofree(void *context, size_t size)
 {
-    return malloc_base(context, size, STB__chunked, -STB_ALLOC_ALIGNMENT);
+    return malloc_base(context, size, STB__chunked, -STB__ALLOC_ALIGNMENT);
 }
 
 void *
 stb_malloc_leaf(void *context, size_t size)
 {
-    return malloc_base(context, size, STB__nochildren, -STB_ALLOC_ALIGNMENT);
+    return malloc_base(context, size, STB__nochildren, -STB__ALLOC_ALIGNMENT);
 }
 
 void *
 stb_malloc_raw(void *context, size_t size)
 {
-    return malloc_base(context, size, STB__chunk_raw, -STB_ALLOC_ALIGNMENT);
+    return malloc_base(context, size, STB__chunk_raw, -STB__ALLOC_ALIGNMENT);
 }
 
 char *
