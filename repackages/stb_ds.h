@@ -1311,11 +1311,7 @@ void stbds_hmfree_func(void *a, size_t elemsize)
       // skip 0th element, which is default
       for (i=1; i < stbds_header(a)->length; ++i)
         STBDS_FREE(NULL, *(char**) ((char *) a + elemsize*i));
-      return;
-    }
-    if (stbds_hash_table(a)->string.mode == STBDS_SH_STRDUP) {
       stbds_strreset(&stbds_hash_table(a)->string);
-      return;
     }
     if (stbds_hash_table(a)->string.mode == STBDS_SH_HALLOC) {
       stbds__hfree(NULL, stbds_header(a)->hash_table);
