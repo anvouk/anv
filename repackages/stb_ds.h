@@ -410,10 +410,6 @@ CREDITS
 #include <stddef.h>
 #include <string.h>
 
-#ifndef INCLUDE_STB_ALLOC_H
-#error stb_alloc.h is required and must be imported before this header
-#endif /* INCLUDE_STB_ALLOC_H */
-
 #ifndef STBDS_NO_SHORT_NAMES
 #define arrlen      stbds_arrlen
 #define arrlenu     stbds_arrlenu
@@ -433,7 +429,6 @@ CREDITS
 #define arrdelswap  stbds_arrdelswap
 #define arrcap      stbds_arrcap
 #define arrsetcap   stbds_arrsetcap
-#define arrhalloc   stbds_halloc_header
 
 #define hmput       stbds_hmput
 #define hmputs      stbds_hmputs
@@ -451,7 +446,6 @@ CREDITS
 #define hmfree      stbds_hmfree
 #define hmdefault   stbds_hmdefault
 #define hmdefaults  stbds_hmdefaults
-#define hmhalloc    stbds_halloc_header
 
 #define shput       stbds_shput
 #define shputi      stbds_shputi
@@ -563,7 +557,6 @@ extern void * stbds__arr_new_halloc_func(void *arr, size_t elemsize, void *paren
 
 // halloc utilities
 #define stbds_arr_new_halloc(a,context) ((a) = stbds__arr_new_halloc_func(a, sizeof(*(a)), context))
-#define stbds_halloc_header(a) ((void *)((size_t)(a) - STB_ALLOC_ALIGNMENT))
 
 #define stbds_arrsetcap(a,n)   (stbds_arrgrow(a,0,n))
 #define stbds_arrsetlen(a,n)   ((stbds_arrcap(a) < (size_t) (n) ? stbds_arrsetcap((a),(size_t)(n)),0 : 0), (a) ? stbds_header(a)->length = (size_t) (n) : 0)
@@ -690,6 +683,7 @@ typedef struct
 {
   size_t      length;
   size_t      capacity;
+  int         mode;
   void      * hash_table;
   ptrdiff_t   temp;
 } stbds_array_header;
@@ -710,6 +704,12 @@ struct stbds_string_arena
 
 #define STBDS_HM_BINARY         0
 #define STBDS_HM_STRING         1
+
+enum
+{
+   STBDS_ARR_NONE = 0,
+   STBDS_ARR_HALLOC,
+};
 
 enum
 {
@@ -766,6 +766,11 @@ template<class T> static T * stbds_shmode_func_wrapper(T *, size_t elemsize, int
 #include <assert.h>
 #include <string.h>
 
+// stb_alloc.h is required
+#ifndef INCLUDE_STB_ALLOC_H
+#error "stb_alloc.h is required before stb_ds.sh implementation"
+#endif /* INCLUDE_STB_ALLOC_H */
+
 #ifndef STBDS_ASSERT
 #define STBDS_ASSERT_WAS_UNDEFINED
 #define STBDS_ASSERT(x)   ((void) 0)
@@ -803,8 +808,7 @@ static void *stbds__hreallocf(void *context, void *ptr, size_t sz)
 #define stbds__hrealloc(c,p,s)  stbds__hreallocf(c,p,s)
 #define stbds__hfree(c,p)       stb_free(p)
 
-void *
-stbds__arr_new_halloc_func(void *arr, size_t elemsize, void *parent)
+void *stbds__arr_new_halloc_func(void *arr, size_t elemsize, void *parent)
 {
   STBDS_ASSERT(arr == NULL);
   STBDS_NOTUSED(arr);
@@ -813,9 +817,8 @@ stbds__arr_new_halloc_func(void *arr, size_t elemsize, void *parent)
   void *b = stbds__hrealloc(parent, NULL, elemsize * min_cap + sizeof(stbds_array_header));
   b = (char *) b + sizeof(stbds_array_header);
   stbds_header(b)->length = 0;
-  // workaround to determine correct free method without adding extra fields.
-  // hash_table is not used for arrays anyway.
-  stbds_header(b)->hash_table = (void *)(size_t)STBDS_SH_HALLOC;
+  stbds_header(b)->mode = STBDS_ARR_HALLOC;
+  stbds_header(b)->hash_table = 0;
   stbds_header(b)->temp = 0;
   stbds_header(b)->capacity = min_cap;
 
@@ -842,21 +845,31 @@ void *stbds_arrgrowf(void *a, size_t elemsize, size_t addlen, size_t min_cap)
   else if (min_cap < 4)
     min_cap = 4;
 
-  //if (num_prev < 65536) if (a) prev_allocs[num_prev++] = (int *) ((char *) a+1);
-  //if (num_prev == 2201)
-  //  num_prev = num_prev;
-  if (a && (size_t)(stbds_header(a)->hash_table) == STBDS_SH_HALLOC) {
-    b = stbds__hrealloc(NULL, stbds_header(a), elemsize * min_cap + sizeof(stbds_array_header));
+  if (a) {
+    if (stbds_header(a)->mode == STBDS_ARR_HALLOC) {
+      // array is using halloc
+      b = stbds__hrealloc(NULL, stbds_header(a), elemsize * min_cap + sizeof(stbds_array_header));
+    } else {
+      // array is using regular STBDS_MALLOC
+      b = STBDS_REALLOC(NULL, stbds_header(a), elemsize * min_cap + sizeof(stbds_array_header));
+    }
   } else {
-    b = STBDS_REALLOC(NULL, (a) ? stbds_header(a) : 0, elemsize * min_cap + sizeof(stbds_array_header));
+    // initializing an array or map: halloc'ated object will always call stbds_arrgrowf()
+    // with a valid ptr, so they'll never reach this. As such, this is a regular
+    // array/map.
+    b = STBDS_REALLOC(NULL, 0, elemsize * min_cap + sizeof(stbds_array_header));
   }
+
   if (!b) {
+    // allocation failed
     return NULL;
   }
+
   //if (num_prev < 65536) prev_allocs[num_prev++] = (int *) (char *) b;
   b = (char *) b + sizeof(stbds_array_header);
   if (a == NULL) {
     stbds_header(b)->length = 0;
+    stbds_header(b)->mode = STBDS_ARR_NONE;
     stbds_header(b)->hash_table = 0;
     stbds_header(b)->temp = 0;
   } else {
@@ -869,7 +882,7 @@ void *stbds_arrgrowf(void *a, size_t elemsize, size_t addlen, size_t min_cap)
 
 void stbds_arrfreef(void *a)
 {
-  if ((size_t)(stbds_header(a)->hash_table) == STBDS_SH_HALLOC) {
+  if (stbds_header(a)->mode == STBDS_ARR_HALLOC) {
     stbds__hfree(NULL, stbds_header(a));
   } else {
     STBDS_FREE(NULL, stbds_header(a));
@@ -1449,7 +1462,7 @@ void *stbds_hmput_key(void *a, size_t elemsize, void *key, size_t keysize, int m
     slot_count = (table == NULL) ? STBDS_BUCKET_LENGTH : table->slot_count*2;
     nt = stbds_make_hash_index(slot_count, table, mode, stbds_header(a));
     if (table)
-      if (mode == STBDS_SH_HALLOC)
+      if (stbds_header(a)->mode == STBDS_ARR_HALLOC)
         stbds__hfree(NULL, table);
       else
         STBDS_FREE(NULL, table);
@@ -1554,8 +1567,10 @@ void * stbds_shmode_func(size_t elemsize, int mode, void *context)
   void *a;
   if (mode == STBDS_SH_HALLOC) {
     a = stbds__arr_new_halloc_func(0, elemsize, context);
+    stbds_header(a)->mode = STBDS_ARR_HALLOC;
   } else {
     a = stbds_arrgrowf(0, elemsize, 0, 1);
+    stbds_header(a)->mode = STBDS_ARR_NONE;
   }
   stbds_hash_index *h;
   memset(a, 0, elemsize);
@@ -1617,7 +1632,7 @@ void * stbds_hmdel_key(void *a, size_t elemsize, void *key, size_t keysize, size
 
         if (table->used_count < table->used_count_shrink_threshold && table->slot_count > STBDS_BUCKET_LENGTH) {
           stbds_header(raw_a)->hash_table = stbds_make_hash_index(table->slot_count>>1, table, mode, stbds_header(a));
-          if (mode == STBDS_SH_HALLOC) {
+          if (stbds_header(raw_a)->mode == STBDS_ARR_HALLOC) {
             stbds__hfree(NULL, table);
           } else {
             STBDS_FREE(NULL, table);
@@ -1625,7 +1640,7 @@ void * stbds_hmdel_key(void *a, size_t elemsize, void *key, size_t keysize, size
           STBDS_STATS(++stbds_hash_shrink);
         } else if (table->tombstone_count > table->tombstone_count_threshold) {
           stbds_header(raw_a)->hash_table = stbds_make_hash_index(table->slot_count, table, mode, stbds_header(a));
-          if (mode == STBDS_SH_HALLOC) {
+          if (stbds_header(raw_a)->mode == STBDS_ARR_HALLOC) {
             stbds__hfree(NULL, table);
           } else {
             STBDS_FREE(NULL, table);
