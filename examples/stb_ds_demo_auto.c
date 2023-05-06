@@ -15,6 +15,12 @@ typedef struct item_t {
     int a;
 } item_t;
 
+// demo struct for hashmaps
+typedef struct map_t {
+    size_t key;
+    size_t value;
+} map_t;
+
 // dumps debug allocation/free counts.
 static void
 dump_stb_alloc(void)
@@ -83,7 +89,7 @@ main(void)
 
         // Important: do not forget to use arrhalloc() to retrieve allocs info
         // from array.
-        stb_free(arrhalloc(my_array));
+        stb_free(stbds_header(my_array));
         dump_stb_alloc();
         assert(stb_alloc_count_alloc == stb_alloc_count_free);
     }
@@ -102,17 +108,18 @@ main(void)
             // a leaf memory block is an allocated object which cannot have
             // other children attached to. It is an optimization since we
             // know the array item's won't have further children's attached to.
-            // arrhalloc() is necessary to retrieve the stb alloc headers from
-            // stb arrays to use for regular stb alloc functions.
-            item_t *item = stb_malloc_leaf(arrhalloc(my_array), sizeof(item_t));
+            // stbds_header() is necessary to retrieve the stb alloc headers
+            // from stb arrays to use for regular stb alloc functions.
+            item_t *item
+                = stb_malloc_leaf(stbds_header(my_array), sizeof(item_t));
             assert(item);
             arrpush(my_array, item);
         }
 
         // do some operations on arrays.
         // Note: removing an item from the array does not delete it
-        // automatically, free in it (individually by hand or automatically from
-        // parent object, will).
+        // automatically, this because the item's lifetime is tied to the
+        // array's.
         arrdel(my_array, 1);
         arrdel(my_array, 20);
         printf("array sz: %zu/%zu\n", arrlen(my_array), arrcap(my_array));
@@ -142,15 +149,16 @@ main(void)
 
         for (size_t i = 0; i < outer_sz; ++i) {
             item_t **inner_arr = NULL;
-            stbds_arr_new_halloc(inner_arr, arrhalloc(outer_arr));
+            stbds_arr_new_halloc(inner_arr, stbds_header(outer_arr));
             assert(inner_arr);
             arrput(outer_arr, inner_arr);
 
             for (size_t j = 0; j < inner_sz; ++j) {
                 // nofree is another variant (used as example here). See
                 // stb alloc docs for more info.
-                item_t *item
-                    = stb_malloc_nofree(arrhalloc(inner_arr), sizeof(item_t));
+                item_t *item = stb_malloc_nofree(
+                    stbds_header(inner_arr), sizeof(item_t)
+                );
                 assert(item);
                 item->a = j;
                 arrpush(inner_arr, item);
@@ -186,5 +194,33 @@ main(void)
         assert(stb_alloc_count_alloc == stb_alloc_count_free);
     }
 
-    // TODO: add hashmaps examples
+    // simple hashmap example
+    {
+        void *root = stb_malloc_global(1);
+        assert(root);
+
+        // Note: init to NULL is, again, necessary.
+        map_t *my_map = NULL;
+        // in the same fashion as stbds_arr_new_halloc() for arrays, we prepare
+        // the map to use hallocs.
+        sh_new_halloc(my_map, root);
+        assert(my_map);
+
+        // insert stuff
+        for (size_t i = 0; i < 200; ++i) {
+            hmput(my_map, i, i * 2);
+        }
+
+        // retrieve stuff
+        for (size_t i = 0; i < 200; ++i) {
+            size_t val = hmget(my_map, i);
+            assert(val == i * 2);
+        }
+
+        stb_free(root);
+        dump_stb_alloc();
+        assert(stb_alloc_count_alloc == stb_alloc_count_free);
+    }
+
+    // TODO: add more hashmaps examples
 }
