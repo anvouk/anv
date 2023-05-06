@@ -1,4 +1,4 @@
-/* stb_ds.h - v0.67 - public domain data structures - Sean Barrett 2019
+/* stb_ds.h - v0.67 - CUSTOM - public domain data structures - Sean Barrett 2019
 
    This is a single-header-file library that provides easy-to-use
    dynamic arrays and hash tables for C (also works in C++).
@@ -968,10 +968,10 @@ static size_t stbds_log2(size_t slot_count)
   return n;
 }
 
-static stbds_hash_index *stbds_make_hash_index(size_t slot_count, stbds_hash_index *ot, int mode, void *context)
+static stbds_hash_index *stbds_make_hash_index(size_t slot_count, stbds_hash_index *ot, stbds_array_header *context)
 {
   stbds_hash_index *t;
-  if (mode == STBDS_SH_HALLOC) {
+  if (context->mode == STBDS_ARR_HALLOC) {
     STBDS_ASSERT(context);
     t = (stbds_hash_index *)stbds__hrealloc(context,0,(slot_count >> STBDS_BUCKET_SHIFT) * sizeof(stbds_hash_bucket) + sizeof(stbds_hash_index) + STBDS_CACHE_LINE_SIZE-1);
   } else {
@@ -1456,7 +1456,7 @@ void *stbds_hmput_key(void *a, size_t elemsize, void *key, size_t keysize, int m
     size_t slot_count;
 
     slot_count = (table == NULL) ? STBDS_BUCKET_LENGTH : table->slot_count*2;
-    nt = stbds_make_hash_index(slot_count, table, mode, stbds_header(a));
+    nt = stbds_make_hash_index(slot_count, table, stbds_header(a));
     if (table)
       if (stbds_header(a)->mode == STBDS_ARR_HALLOC)
         stbds__hfree(NULL, table);
@@ -1571,7 +1571,7 @@ void * stbds_shmode_func(size_t elemsize, int mode, void *context)
   stbds_hash_index *h;
   memset(a, 0, elemsize);
   stbds_header(a)->length = 1;
-  stbds_header(a)->hash_table = h = (stbds_hash_index *) stbds_make_hash_index(STBDS_BUCKET_LENGTH, NULL, mode, stbds_header(a));
+  stbds_header(a)->hash_table = h = (stbds_hash_index *) stbds_make_hash_index(STBDS_BUCKET_LENGTH, NULL, stbds_header(a));
   h->string.mode = (unsigned char) mode;
   return STBDS_ARR_TO_HASH(a,elemsize);
 }
@@ -1627,7 +1627,7 @@ void * stbds_hmdel_key(void *a, size_t elemsize, void *key, size_t keysize, size
         stbds_header(raw_a)->length -= 1;
 
         if (table->used_count < table->used_count_shrink_threshold && table->slot_count > STBDS_BUCKET_LENGTH) {
-          stbds_header(raw_a)->hash_table = stbds_make_hash_index(table->slot_count>>1, table, mode, stbds_header(a));
+          stbds_header(raw_a)->hash_table = stbds_make_hash_index(table->slot_count>>1, table, stbds_header(raw_a));
           if (stbds_header(raw_a)->mode == STBDS_ARR_HALLOC) {
             stbds__hfree(NULL, table);
           } else {
@@ -1635,7 +1635,7 @@ void * stbds_hmdel_key(void *a, size_t elemsize, void *key, size_t keysize, size
           }
           STBDS_STATS(++stbds_hash_shrink);
         } else if (table->tombstone_count > table->tombstone_count_threshold) {
-          stbds_header(raw_a)->hash_table = stbds_make_hash_index(table->slot_count, table, mode, stbds_header(a));
+          stbds_header(raw_a)->hash_table = stbds_make_hash_index(table->slot_count, table, stbds_header(raw_a));
           if (stbds_header(raw_a)->mode == STBDS_ARR_HALLOC) {
             stbds__hfree(NULL, table);
           } else {
