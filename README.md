@@ -39,11 +39,12 @@ After this is done, the header can be included as normal wherever is needed.
 
 ## Repackaged libs
 
-|   Headers   |  OS   |      LICENSE      | SOURCE                             | Description                                                                       |
-|:-----------:|:-----:|:-----------------:|------------------------------------|-----------------------------------------------------------------------------------|
-|  halloc.h   | Cross |       BSD-2       | https://github.com/apankrat/halloc | Hierarchical memory allocator                                                     |
-| stb_alloc.h | Cross | MIT/PUBLIC DOMAIN | https://github.com/nothings/stb    | Hierarchical memory allocator from stb.h + fixes                                  |
-|  stb_ds.h   | Cross | MIT/PUBLIC DOMAIN | https://github.com/nothings/stb    | Dynamic arrays/maps but with stb_alloc.h integration (allows memory 'auto-free'). |
+|   Headers   |     OS      |      LICENSE      | SOURCE                               | Description                                                                       |
+|:-----------:|:-----------:|:-----------------:|--------------------------------------|-----------------------------------------------------------------------------------|
+|  halloc.h   |    Cross    |       BSD-2       | https://github.com/apankrat/halloc   | Hierarchical memory allocator                                                     |
+| stb_alloc.h |    Cross    | MIT/PUBLIC DOMAIN | https://github.com/nothings/stb      | Hierarchical memory allocator from stb.h + fixes                                  |
+|  stb_ds.h   |    Cross    | MIT/PUBLIC DOMAIN | https://github.com/nothings/stb      | Dynamic arrays/maps but with stb_alloc.h integration (allows memory 'auto-free'). |
+| coroutine.h | MACOS/LINUX |        MIT        | https://github.com/cloudwu/coroutine | Asymmetric coroutine library.                                                     |
 
 ## Deprecated libs
 
